@@ -62,6 +62,18 @@ class CenterTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QGuiApplication.instance() or QGuiApplication([])
 
+    def test_category_and_query_are_combined(self):
+        entries = [dict(id="a.desktop", name="Editor A", description="", categories="Graphics;", icon=""),
+                   dict(id="b.desktop", name="Tool B", description="", categories="Utility;", icon="")]
+        with patch.object(center, "applications", return_value=entries):
+            backend = center.Center()
+        backend.setCategory("Graphics")
+        self.assertEqual([item["id"] for item in backend.apps], ["a.desktop"])
+        backend.search("Tool")
+        self.assertEqual(backend.apps, [])
+        backend.setCategory("")
+        self.assertEqual([item["id"] for item in backend.apps], ["b.desktop"])
+
     def test_systemsettings_fallback_discovers_and_opens_only_known_modules(self):
         with patch.object(center.shutil, "which", side_effect=lambda name: "/mock/systemsettings" if name == "systemsettings" else None), \
              patch.object(center.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "kcm_keyboard - Keyboard\nkcm_clock - Date and Time\n", "")):

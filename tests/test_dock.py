@@ -29,7 +29,7 @@ class DockTests(unittest.TestCase):
         self.assertEqual(result["state"], "created")
         self.assertEqual(self.value("panels()[1].location"), "bottom")
         self.assertEqual(self.value("panels()[1].lengthMode"), "fit")
-        self.assertEqual(self.value("panels()[1].widgets[1].config['General/groupedTaskVisualization']"), 3)
+        self.assertEqual(self.value("panels()[1].widgets[0].config['General/groupedTaskVisualization']"), 3)
         self.assertEqual(self.value("brutallTopPanel('apply', {screen:0,height:56,layout:'dock',owner:'other'}).state"), "unchanged")
         self.value("brutallTopPanel('rollback', {layout:'dock',owner:'dock'})")
         self.assertEqual(self.value("panels().length"), 1)

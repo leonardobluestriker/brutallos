@@ -37,7 +37,7 @@ def applications(roots=None):
                     continue
                 name = item.get("Name[" + language + "]", item.get("Name[" + language.split("_")[0] + "]", item.get("Name", identifier)))
                 result.append(dict(id=identifier, name=name, path=str(path.resolve()),
-                                   description=item.get("Comment", ""), categories=item.get("Categories", "")))
+                                   description=item.get("Comment", ""), categories=item.get("Categories", ""), icon=item.get("Icon", "application-x-executable")))
             except (OSError, UnicodeError, configparser.Error, KeyError, ValueError):
                 continue
     return sorted(result, key=lambda entry: entry["name"].casefold())

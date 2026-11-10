@@ -165,8 +165,9 @@ def main():
         if args.screen < 0:
             raise ValueError("O índice de tela deve ser positivo ou zero.")
         options = {"screen": args.screen, "layout": args.layout,
-                   "height": getattr(args, "height", None) or (56 if args.layout == "dock" else 36)}
+                   "height": getattr(args, "height", None) or (56 if args.layout == "dock" else 32)}
         if args.layout == "dock":
+            options["launcherIcon"] = str(ROOT / "assets/icons/brutall-launcher.svg")
             sys.path.insert(0, str(ROOT / "apps/brutall-center"))
             from services import applications
             installed = applications()

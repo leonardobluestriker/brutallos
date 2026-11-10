@@ -1,5 +1,7 @@
 # brutallOS
 
+**Aparência Bru disponível:** sinaleiro nativo Aurorae à esquerda, paletas clara/escura, launcher com ícones/categorias e aplicação com backup/desfazer. [Guia e validação](docs/bru-appearance.md).
+
 Experiência desktop sobre Linux, KDE Plasma 6, KWin e Aurorae. A distribuição própria é uma etapa posterior.
 
 A referência técnica é [design-4.md](design-4.md), complementada pela [direção atual do produto](docs/product-direction.md). A sequência atual informada pelo projeto prevalece sobre a tarefa histórica de Fase 1 no final desse documento: **Welcome → painel superior → dock → launcher → configurações → Striker Tools**.

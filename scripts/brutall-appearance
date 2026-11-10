@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""Apply the Bru QML/Aurorae decoration and palette with a user-file backup."""
+import argparse
+import base64
+import fcntl
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import uuid
+
+ROOT = Path(__file__).resolve().parents[1]
+THEME = "org.brutallos.bru"
+
+
+def atomic(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=".bru-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name): os.unlink(name)
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+
+
+def destinations(config, data):
+    source = ROOT / "plasma/aurorae" / THEME
+    copied = [(path, data / "kwin/decorations" / THEME / path.relative_to(source))
+              for path in sorted(source.rglob("*")) if path.is_file()]
+    copied += [(path, data / "color-schemes" / path.name) for path in sorted((ROOT / "plasma/colors").glob("Bru*.colors"))]
+    return copied, [target for _, target in copied] + [config / name for name in ("kwinrc", "auroraerc", "kdeglobals")]
+
+
+def snapshot(paths):
+    if any(path.is_symlink() for path in paths):
+        raise ValueError("Há arquivos de tema/configuração gerenciados por links simbólicos. Aplicação recusada para preservar os links.")
+    return [{"path": str(path), "before": base64.b64encode(path.read_bytes()).decode() if path.exists() else None,
+             "mode": path.stat().st_mode & 0o777 if path.exists() else None} for path in paths]
+
+
+def restore(files):
+    # Check every file before restoring any: do not partially undo on a conflict.
+    for item in files:
+        if digest(Path(item["path"])) != item["after"]:
+            raise ValueError("Arquivo alterado após a aplicação: " + item["path"] + ". Reversão recusada para preservar as alterações.")
+    for item in files:
+        path = Path(item["path"])
+        if item["before"] is None:
+            path.unlink(missing_ok=True)
+        else:
+            atomic(path, base64.b64decode(item["before"]))
+            if item.get("mode") is not None: path.chmod(item["mode"])
+
+
+def native(*args):
+    result = subprocess.run(args, capture_output=True, text=True, timeout=30)
+    if result.returncode:
+        raise ValueError((result.stderr or result.stdout).strip()[:1500])
+    return result.stdout.strip()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("plan", "apply", "rollback"))
+    parser.add_argument("--mode", choices=("light", "dark"), default="light")
+    parser.add_argument("--backup", type=Path)
+    args = parser.parse_args()
+    try:
+        config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+        data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
+        state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "brutallos/appearance"
+        if not all(path.is_absolute() for path in (config, data, state)):
+            raise ValueError("Os diretórios XDG devem ser absolutos.")
+        copied, paths = destinations(config, data)
+        if args.action == "plan":
+            print(json.dumps({"mode": args.mode, "files": [str(path) for path in paths], "theme": THEME}, indent=2))
+            return 0
+        kwrite = shutil.which("kwriteconfig6")
+        colors = shutil.which("plasma-apply-colorscheme")
+        qdbus = shutil.which("qdbus6") or shutil.which("qdbus-qt6") or "/usr/lib/qt6/bin/qdbus"
+        if not kwrite or not colors or not Path(qdbus).is_file():
+            raise ValueError("Execute numa sessão Plasma 6 com kwriteconfig6, plasma-apply-colorscheme e qdbus Qt 6.")
+        native(qdbus, "org.kde.KWin", "/KWin", "org.freedesktop.DBus.Peer.Ping")
+        info = native(qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.supportInformation")
+        if not re.search(r"KWin version:\s*6\.", info):
+            raise ValueError("Esta decoração exige KWin 6.")
+        state.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with (state / ".lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            if args.action == "rollback":
+                if args.backup is None: raise ValueError("Informe --backup com o arquivo do backup.")
+                manifest = json.loads(args.backup.read_text())
+                if manifest.get("schemaVersion") != 1: raise ValueError("Backup inválido.")
+                # Validate the backup belongs to this user's permitted destination set.
+                if {item["path"] for item in manifest["files"]} != {str(path) for path in paths}:
+                    raise ValueError("O backup pertence a outros diretórios ou versão do tema.")
+                restore(manifest["files"])
+                native(qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure")
+                print("Configurações anteriores restauradas. Reabra os apps ou entre novamente para recarregar a paleta em todos eles.")
+                return 0
+            manifest = {"schemaVersion": 1, "mode": args.mode, "phase": "prepared", "files": snapshot(paths)}
+            backup = state / (uuid.uuid4().hex + ".json")
+            atomic(backup, json.dumps(manifest, indent=2).encode())
+            print("Backup: " + str(backup), flush=True)
+            try:
+                for source, target in copied: atomic(target, source.read_bytes())
+                for key, value in {"library": "org.kde.kwin.aurorae", "theme": THEME, "ButtonsOnLeft": "XIA", "ButtonsOnRight": ""}.items():
+                    native(kwrite, "--file", str(config / "kwinrc"), "--group", "org.kde.kdecoration2", "--key", key, value)
+                native(kwrite, "--file", str(config / "auroraerc"), "--group", THEME, "--key", "dark", "true" if args.mode == "dark" else "false")
+                native(colors, "BruDark" if args.mode == "dark" else "BruLight")
+                native(qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure")
+                manifest["phase"] = "applied"
+            except (OSError, ValueError, subprocess.SubprocessError):
+                manifest["phase"] = "incomplete"
+                raise
+            finally:
+                for item in manifest["files"]: item["after"] = digest(Path(item["path"]))
+                atomic(backup, json.dumps(manifest, indent=2).encode())
+            print("Bru aplicado: " + args.mode + ". Reversão: brutall-appearance rollback --backup " + str(backup))
+            return 0
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print("brutall-appearance: " + str(error), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

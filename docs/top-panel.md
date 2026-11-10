@@ -14,7 +14,7 @@ Primeira implementação do shell: um painel Plasma nativo, criado pelas APIs p�
 | Direita | Bandeja do sistema Plasma | Rede, áudio, energia e demais indicadores disponíveis, com seus controles nativos |
 | Extremidade direita | Relógio digital Plasma | Data local, hora e calendário reais |
 
-Altura padrão: **36 pixels lógicos**, ajustável de 28 a 64. Painel de largura total, fixo no topo, opaco e sem flutuação. Usa fontes, cores, ícones e menus do **tema Plasma ativo**. Não força a cor preta da referência nem altera o tema global para consegui-la; o acabamento será refinado no Plasma Style Bru. As artes originais e a decoração Aurorae não são alteradas.
+Altura padrão: **32 pixels lógicos** (revisada na etapa Bru; inicialmente 36), ajustável de 28 a 64. Painel de largura total, fixo no topo, opaco e sem flutuação. Usa fontes, cores, ícones e menus do **tema Plasma ativo**. Não força a cor preta da referência nem altera o tema global para consegui-la; o acabamento será refinado no Plasma Style Bru. As artes originais e a decoração Aurorae não são alteradas.
 
 O ícone do Kickoff é o nativo do KDE acompanhado do texto brutallOS. A substituição por um ícone de marca licenciado poderá ser feita depois. A marca já é funcional; o launcher autoral continua sendo uma etapa própria. Não há atalhos para programas ArtCraft ausentes.
 

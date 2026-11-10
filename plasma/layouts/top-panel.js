@@ -106,12 +106,13 @@ function brutallTopPanel(action, options) {
         panel.opacity = "opaque";
 
         if (dock) {
-            panel.addWidget("org.kde.plasma.kickoff");
             var tasks = panel.addWidget("org.kde.plasma.icontasks");
             configure(tasks, ["General"], {launchers: options.launchers || [],
                 separateLaunchers: false, hideLauncherOnStart: true, groupingStrategy: 1,
                 groupPopups: true, groupedTaskVisualization: 3, onlyGroupWhenFull: false, showOnlyCurrentScreen: true,
                 showOnlyCurrentDesktop: false});
+            var launcher = panel.addWidget("org.kde.plasma.kickoff");
+            configure(launcher, ["General"], {icon: options.launcherIcon || "view-grid", menuLabel: ""});
             return {action: action, state: "created", id: panel.id, owner: options.owner};
         }
         var brand = panel.addWidget("org.kde.plasma.kickoff");

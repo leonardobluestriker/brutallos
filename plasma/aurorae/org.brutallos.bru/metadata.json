@@ -1,0 +1,10 @@
+{
+  "KPackageStructure": "KWin/Decoration",
+  "KPlugin": {
+    "Id": "org.brutallos.bru",
+    "Name": "Bru · Sinaleiro",
+    "Description": "brutallOS: decoração arredondada com ações nativas do KWin",
+    "Version": "0.1.0",
+    "Authors": [{"Name": "brutallOS contributors"}]
+  }
+}
