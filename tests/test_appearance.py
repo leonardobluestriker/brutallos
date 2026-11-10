@@ -2,9 +2,11 @@ import importlib.machinery
 import importlib.util
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
 loader = importlib.machinery.SourceFileLoader("appearance", str(ROOT / "scripts/brutall-appearance"))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 appearance = importlib.util.module_from_spec(spec)

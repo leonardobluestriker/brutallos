@@ -7,10 +7,17 @@ import QtQuick.Layouts
 ApplicationWindow {
     id: win
     required property var backend
+    property bool launcherMode: false
+    property int launcherCategory: 0
+    property int themeIndex: 0
+    property int variantIndex: 2
+    readonly property var chosenTheme: backend.themePreviews[themeIndex]
+    readonly property var chosenVariant: chosenTheme.variants[variantIndex]
     visible: true
-    width: 1120; height: 760
+    flags: launcherMode ? (Qt.Tool | Qt.WindowStaysOnTopHint) : Qt.Window
+    width: launcherMode ? 1040 : 1120; height: launcherMode ? 640 : 760
     minimumWidth: 840; minimumHeight: 600
-    title: qsTr("Central brutallOS")
+    title: launcherMode ? qsTr("Aplicativos brutallOS") : qsTr("Central brutallOS")
     property int page: 0
     property bool dark: backend.systemDark
     readonly property color paper: dark ? "#101322" : "#f6f7fc"
@@ -27,7 +34,15 @@ ApplicationWindow {
     palette.highlightedText: "#101322"
     font.pixelSize: 14
     function updateMonitoring() { backend.setMonitoring(page === 2 && visibility !== Window.Minimized && visible) }
-    onPageChanged: updateMonitoring()
+    onPageChanged: { updateMonitoring(); if (page === 3) backend.refreshWallpaperState() }
+    function showWallpaperActions() {
+        const flick = identityScroll.contentItem as Flickable
+        if (flick) flick.contentY = Math.max(0, flick.contentHeight - flick.height)
+    }
+    function showWallpaperThemes() { identityScroll.contentItem.contentY = 0 }
+    Shortcut { sequence: "Escape"; enabled: win.launcherMode; onActivated: win.close() }
+    Component.onCompleted: { if (launcherMode) searchField.forceActiveFocus() }
+    onClosing: { if (launcherMode) Qt.quit() }
     onVisibilityChanged: updateMonitoring()
 
     component Copy: Label { color: win.ink; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
@@ -46,7 +61,7 @@ ApplicationWindow {
         RowLayout {
             anchors.fill: parent; anchors.margins: 12
             Copy { text: "brutallOS"; font.pixelSize: 21; font.bold: true }
-            Copy { text: qsTr(" / central"); opacity: 0.7 }
+            Copy { text: win.launcherMode ? qsTr(" / aplicativos") : qsTr(" / central"); opacity: 0.7 }
             Item { Layout.fillWidth: true }
             Action {
                 text: win.dark ? qsTr("Prévia clara") : qsTr("Prévia escura")
@@ -64,7 +79,7 @@ ApplicationWindow {
                 anchors.fill: parent; anchors.margins: 20; spacing: 12
                 Copy { text: qsTr("SEU ESPAÇO"); font.pixelSize: 11; font.letterSpacing: 2 }
                 Repeater {
-                    model: [qsTr("Aplicativos"), qsTr("Configurações"), "Striker Tools", qsTr("Identidade")]
+                    model: win.launcherMode ? [] : [qsTr("Aplicativos"), qsTr("Configurações"), "Striker Tools", qsTr("Identidade")]
                     delegate: Action {
                         required property int index
                         required property string modelData
@@ -73,7 +88,16 @@ ApplicationWindow {
                         onClicked: win.page = index
                     }
                 }
-                Copy { width: parent.width; text: qsTr("Linux + Plasma 6\n\nFeito para criar.\nPronto para explorar."); opacity: 0.7; font.pixelSize: 13 }
+                Repeater {
+                    model: win.launcherMode ? [qsTr("Todos os apps"), qsTr("Criatividade"), qsTr("Mídia"), qsTr("Produtividade"), qsTr("Jogos"), qsTr("Internet"), qsTr("Utilitários"), qsTr("Sistema")] : []
+                    delegate: Action {
+                        required property int index
+                        required property string modelData
+                        width: parent.width; text: modelData; checked: win.launcherCategory === index
+                        onClicked: { win.launcherCategory = index; win.backend.setCategory(["", "Graphics", "AudioVideo", "Office", "Game", "Network", "Utility", "System"][index]) }
+                    }
+                }
+                Copy { visible: !win.launcherMode; width: parent.width; text: qsTr("Linux + Plasma 6\n\nFeito para criar.\nPronto para explorar."); opacity: 0.7; font.pixelSize: 13 }
             }
         }
         StackLayout {
@@ -100,6 +124,7 @@ ApplicationWindow {
                     Layout.leftMargin: 24; Layout.rightMargin: 24; spacing: 16
                     Basic.ComboBox {
                         id: categories
+                        visible: !win.launcherMode
                         implicitWidth: 180
                         implicitHeight: 40
                         Accessible.name: qsTr("Categoria de aplicativos")
@@ -197,20 +222,24 @@ ApplicationWindow {
                 Column {
                     width: identityScroll.availableWidth; padding: 28; spacing: 20
                     Copy { width: parent.width - 56; text: qsTr("Aparência"); font.pixelSize: 27; font.bold: true }
-                    Copy { width: parent.width - 56; text: qsTr("Sua identidade, em cada detalhe."); opacity: 0.7 }
                     Flow {
                         width: parent.width - 56; spacing: 12
                         Repeater {
                             model: win.backend.themePreviews
-                            delegate: Rectangle {
+                            delegate: Button {
                                 id: themeCard
                                 required property var modelData
-                                width: (parent.width - 24) / 3; height: 152
-                                radius: 14; color: win.surface; border.color: win.dark ? "#59617b" : "#9da4b5"
+                                width: (parent.width - 24) / 3; height: 112
+                                required property int index
+                                objectName: "wallpaperTheme" + index
+                                checked: win.themeIndex === index
+                                Accessible.name: modelData.name
+                                onClicked: { win.variantIndex = 0; win.themeIndex = index }
+                                background: Rectangle { radius: 14; color: win.surface; border.width: themeCard.checked || themeCard.visualFocus ? 3 : 1; border.color: themeCard.checked ? win.accent : (win.dark ? "#59617b" : "#9da4b5") }
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 10
                                     Copy { width: parent.width; text: themeCard.modelData.name; font.bold: true; font.pixelSize: 12 }
-                                    Image { width: parent.width; height: 90; source: themeCard.modelData.url; fillMode: Image.PreserveAspectFit }
+                                    Image { width: parent.width; height: 60; source: themeCard.modelData.url; fillMode: Image.PreserveAspectFit }
                                 }
                             }
                         }
@@ -222,9 +251,29 @@ ApplicationWindow {
                         Action { objectName: "applyDark"; text: qsTr("Aplicar Bru escuro"); enabled: win.backend.canApplyAppearance && !win.backend.appearanceBusy; onClicked: win.backend.applyAppearance("dark") }
                         Action { objectName: "undoAppearance"; text: qsTr("Desfazer"); visible: win.backend.canUndoAppearance; enabled: !win.backend.appearanceBusy; onClicked: win.backend.undoAppearance() }
                     }
-                    Copy { width: parent.width - 56; text: qsTr("Aplica o sinaleiro Aurorae e a paleta Bru na sessão Plasma, com backup e opção de desfazer. Seu wallpaper é preservado."); opacity: 0.7 }
-                    Action { text: qsTr("Wallpapers e variantes no Welcome →"); onClicked: win.backend.openAppearance() }
-                    Copy { width: parent.width - 56; text: qsTr("ArtCraft padrão\nPhotocraft · Filmcraft · Wordcraft · Gridcraft · Deckcraft"); opacity: 0.7 }
+                    Copy { text: qsTr("Wallpaper original"); font.bold: true }
+                    Flow {
+                        width: parent.width - 56; spacing: 10
+                        Repeater {
+                            model: win.chosenTheme.variants
+                            delegate: Action {
+                                required property var modelData
+                                required property int index
+                                objectName: "wallpaperVariant" + index
+                                text: modelData.name; checked: win.variantIndex === index
+                                onClicked: win.variantIndex = index
+                            }
+                        }
+                    }
+                    Image { objectName: "wallpaperPreview"; readonly property bool loaded: status === Image.Ready; width: parent.width - 56; height: 120; source: win.chosenVariant.url; fillMode: Image.PreserveAspectFit; Accessible.name: win.chosenTheme.name + " / " + win.chosenVariant.name }
+                    Flow {
+                        width: parent.width - 56; spacing: 10
+                        Basic.ComboBox { id: wallpaperScreen; model: win.backend.screenChoices; implicitWidth: 190; Accessible.name: qsTr("Monitor para o wallpaper") }
+                        Action { objectName: "applyWallpaper"; text: qsTr("Aplicar wallpaper"); enabled: win.backend.canApplyWallpaper && !win.backend.wallpaperBusy && !win.backend.appearanceBusy; onClicked: win.backend.applyWallpaper(win.chosenVariant.file, wallpaperScreen.currentIndex) }
+                        Action { objectName: "undoWallpaper"; text: qsTr("Desfazer wallpaper"); visible: win.backend.canUndoWallpaper; enabled: !win.backend.wallpaperBusy; onClicked: win.backend.undoWallpaper() }
+                    }
+                    Copy { width: parent.width - 56; text: qsTr("Atividade atual · imagem original com backup. Paleta e painéis são preservados."); opacity: 0.7 }
+                    Action { text: qsTr("Reabrir o Welcome →"); onClicked: win.backend.openAppearance() }
                 }
             }
         }
@@ -232,6 +281,8 @@ ApplicationWindow {
     Connections {
         target: win.backend
         function onAppearanceApplied(darkMode) { win.dark = darkMode }
+        function onLaunchRequested() { if (win.launcherMode) win.close() }
+        function onWallpaperSelected(ti, vi) { win.variantIndex = 0; win.themeIndex = ti; win.variantIndex = vi }
     }
     footer: Copy { padding: 16; text: win.backend.message; visible: text.length > 0 }
 }

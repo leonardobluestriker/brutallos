@@ -1,12 +1,12 @@
 # brutallOS
 
-**Aparência Bru disponível:** sinaleiro nativo Aurorae à esquerda, paletas clara/escura, launcher com ícones/categorias e aplicação com backup/desfazer. [Guia e validação](docs/bru-appearance.md).
+**Entrega atual:** launcher próprio conectado à dock, busca/categorias, seleção dos nove wallpapers originais por monitor e backup/desfazer. Bru claro/escuro inclui sinaleiro nativo Aurorae à esquerda. [Guia, validação e capturas completas](docs/launcher-and-wallpapers.md).
 
 Experiência desktop sobre Linux, KDE Plasma 6, KWin e Aurorae. A distribuição própria é uma etapa posterior.
 
 A referência técnica é [design-4.md](design-4.md), complementada pela [direção atual do produto](docs/product-direction.md). A sequência atual informada pelo projeto prevalece sobre a tarefa histórica de Fase 1 no final desse documento: **Welcome → painel superior → dock → launcher → configurações → Striker Tools**.
 
-**Laboratório cloud executado:** Debian 13, Plasma/KWin 6.3.6 e Qt 6.8.2, com sessões X11 e Wayland, duas saídas virtuais, escala 200% e 28 testes automatizados aprovados. [Relatório e screenshots do desktop inteiro](docs/cloud-lab-report.md). A decoração/temas Bru existentes ainda precisam ser fornecidos; as capturas usam Breeze provisoriamente.
+**Laboratório cloud executado:** Debian 13, Plasma/KWin 6.3.6 e Qt 6.8.2, com 36 testes automatizados aprovados. A nova etapa validou launcher/dock, aplicação/reversão dos nove wallpapers e duas saídas Wayland. Escala 200% foi exercitada na etapa anterior. [Relatório atual](docs/launcher-and-wallpapers.md) e [histórico do laboratório](docs/cloud-lab-report.md). As capturas atuais usam a nova decoração Bru; as históricas usam Breeze.
 
 ## Painel superior
 
@@ -26,10 +26,13 @@ A [Central brutallOS e a dock](docs/center-and-dock.md) ampliam o protótipo. A 
 
 ```sh
 scripts/brutall-center
+scripts/brutall-center --launcher
 scripts/brutall-dock plan --offline
 ```
 
 A dock usa o gerenciador de tarefas nativo, com agrupamento e seletor de janelas, além de backup/reversão seletiva. A central e os layouts foram exercitados no laboratório gráfico cloud; os limites estão no relatório. Perfis Gamer/Economia e benchmarks são etapas futuras.
+
+O [registro e conexão do launcher próprio](docs/launcher-and-wallpapers.md) são opcionais e reversíveis. Sua janela lista os apps instalados, fecha com Escape e encerra após solicitar a abertura de um app. Em Wayland, ainda aparece também como tarefa enquanto aberta; esse detalhe da integração com o shell está pendente.
 
 ## brutall-welcome
 
@@ -59,7 +62,7 @@ Sem `--config-dir`, o destino é `${XDG_CONFIG_HOME:-$HOME/.config}/brutallos`. 
 - Salva somente `welcome.json`, com versão de esquema e indicador de onboarding concluído.
 - Faz backup antes de cada gravação, escreve atomicamente e permite desfazer a última gravação.
 
-Ainda **não aplica** wallpaper, esquema de cores, decoração, painéis ou desktops virtuais; não instala ArtCraft nem executa comandos de configuração. Não há autostart instalado. O tour identifica componentes futuros como planejados. A seleção de espaço é uma preferência para a próxima etapa, não um desktop virtual já criado.
+O Welcome salva preferências; a **Central** oferece os comandos explícitos de aplicação de wallpaper e aparência Bru. O Welcome não instala ArtCraft nem aplica painéis ou desktops virtuais. Não há autostart instalado. A seleção de espaço continua sendo uma preferência, não um desktop virtual já criado.
 
 ### Reversão
 
@@ -80,4 +83,4 @@ O backup guarda os bytes anteriores exatos. Na primeira gravação, desfazer rem
 
 Consulte [a validação e os testes manuais](docs/validation.md), [as decisões de arquitetura](docs/architecture.md) e [o inventário das imagens](assets/wallpapers/README.md).
 
-O código dos temas Bru e da decoração já validados não veio no anexo nem estava no repositório inicial. Esta entrega não os recria nem substitui. A validação prévia em Debian 13 / Plasma 6.3.6 / KWin 6.3.6 é informação fornecida pelo projeto; o Welcome ainda precisa passar pela matriz de integração nessa VM.
+O código da decoração previamente validada pelo projeto não veio no anexo nem no repositório inicial. A [decoração Bru deste checkout](docs/bru-appearance.md) é uma implementação nova, com testes próprios no laboratório. Raio e Strikerzinho & Friends já têm seus wallpapers selecionáveis; seus estilos globais completos continuam pendentes.

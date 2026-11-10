@@ -1,6 +1,6 @@
 # Integração em cloud: Debian 13 / Plasma 6.3.6
 
-**Etapa posterior:** a decoração Bru agora foi implementada e testada. Veja [aparência Bru](bru-appearance.md) e as novas capturas em `screenshots/bru-theme/`. Este relatório e suas imagens registram a etapa anterior, que usava Breeze.
+**Etapas posteriores:** a [aparência Bru](bru-appearance.md) e o [launcher próprio com seleção de wallpapers](launcher-and-wallpapers.md) agora foram implementados e testados. A suíte atual tem 36 testes. Este relatório e suas imagens registram a etapa anterior, que usava Breeze.
 
 Laboratório executado em 10 de novembro de 2026. Contêineres descartáveis, usuário sem privilégios, checkout somente para leitura, homes isolados, sem alterar pacotes ou configurações do desktop do host. Não é uma VM de boot nem um teste de hardware físico.
 

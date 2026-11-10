@@ -1,5 +1,7 @@
 # Bru: aparência e sinaleiro
 
+**Etapa seguinte disponível:** [launcher próprio conectado à dock e seleção dos nove wallpapers](launcher-and-wallpapers.md). As capturas abaixo registram a etapa de implementação da aparência Bru.
+
 Implementação nova, criada nesta etapa. Os arquivos da decoração anteriormente validada pelo projeto não estavam no anexo; esta implementação não é apresentada como uma cópia daquela versão.
 
 ## Aparência

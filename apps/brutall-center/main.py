@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import argparse
 
 from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer, QUrl, QProcess, QTemporaryDir
 from PySide6.QtGui import QGuiApplication, QIcon
@@ -11,6 +12,9 @@ from PySide6.QtQml import QQmlApplicationEngine
 from services import applications, Metrics
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "apps/brutall-welcome"))
+from catalog import THEMES
+
 MODULES = [("Tela", "kcm_kscreen"), ("Som", "kcm_pulseaudio"), ("Rede", "kcm_networkmanagement"),
            ("Energia", "kcm_powerdevilprofilesconfig"), ("Data e hora", "kcm_clock"),
            ("Teclado", "kcm_keyboard"), ("Bluetooth", "kcm_bluetooth")]
@@ -21,10 +25,18 @@ class Center(QObject):
     appsChanged = Signal()
     metricsChanged = Signal()
     appearanceApplied = Signal(bool)
+    launchRequested = Signal()
+    wallpaperChanged = Signal()
+    wallpaperSelected = Signal(int, int)
 
     def __init__(self):
         super().__init__()
         self._message = ""
+        self._wallpaperBackup = None
+        self._screenChoices = ["Monitor 1", "Todos os monitores"]
+        self.wallpaperProcess = QProcess(self)
+        self.wallpaperProcess.finished.connect(self.wallpaperFinished)
+        self.wallpaperProcess.errorOccurred.connect(lambda error: self.wallpaperError())
         self._appearanceBackup = None
         self.appearanceProcess = QProcess(self)
         self.appearanceProcess.finished.connect(self.appearanceFinished)
@@ -84,8 +96,83 @@ class Center(QObject):
 
     @Property("QVariantList", constant=True)
     def themePreviews(self):
-        return [dict(name=name, url=QUrl.fromLocalFile(str(ROOT / "assets/wallpapers" / filename)).toString())
-                for name, filename in [("Bru", "BRU1.png"), ("Raio", "RAIO1.png"), ("Strikerzinho & Friends", "BLUESTRIKER.png")]]
+        result = []
+        for theme in THEMES:
+            variants = [dict(v, url=(ROOT / "assets/wallpapers" / v["file"]).as_uri()) for v in theme["variants"]]
+            preview = next((v for v in variants if v["id"] == "original"), variants[0])
+            result.append(dict(theme, variants=variants, url=preview["url"]))
+        return result
+
+    @Property(bool, constant=True)
+    def canApplyWallpaper(self):
+        return bool(shutil.which("plasmashell") and (shutil.which("qdbus6") or shutil.which("qdbus-qt6") or Path("/usr/lib/qt6/bin/qdbus").is_file()))
+
+    @Property(bool, notify=wallpaperChanged)
+    def wallpaperBusy(self):
+        return self.wallpaperProcess.state() != QProcess.NotRunning
+
+    @Property(bool, notify=wallpaperChanged)
+    def canUndoWallpaper(self):
+        return self._wallpaperBackup is not None
+
+    @Property("QStringList", notify=wallpaperChanged)
+    def screenChoices(self):
+        return self._screenChoices
+
+    def wallpaperCommand(self, action, arguments):
+        self._wallpaperAction = action
+        self.wallpaperProcess.start(sys.executable, [str(ROOT / "scripts/brutall-wallpaper"), action] + arguments)
+        self.wallpaperChanged.emit()
+
+    @Slot()
+    def refreshWallpaperState(self):
+        if self.canApplyWallpaper and not self.wallpaperBusy:
+            self.wallpaperCommand("status", [])
+
+    @Slot(str, int)
+    def applyWallpaper(self, filename, screen):
+        if filename not in {v["file"] for t in THEMES for v in t["variants"]} or not self.canApplyWallpaper or self.wallpaperBusy or not 0 <= screen < len(self._screenChoices):
+            return
+        self._message = "Aplicando wallpaper original com backup…"
+        self.wallpaperCommand("apply", ["--image", filename] + (["--all-screens"] if screen == len(self._screenChoices) - 1 else ["--screen", str(screen)]))
+        self.changed.emit()
+
+    @Slot()
+    def undoWallpaper(self):
+        if self.canUndoWallpaper and not self.wallpaperBusy:
+            self.wallpaperCommand("rollback", ["--backup", self._wallpaperBackup])
+
+    def wallpaperFinished(self, exit_code, status):
+        import json
+        output = bytes(self.wallpaperProcess.readAllStandardOutput()).decode(errors="replace")
+        errors = bytes(self.wallpaperProcess.readAllStandardError()).decode(errors="replace")
+        backup = next((line[8:].strip() for line in output.splitlines() if line.startswith("Backup: ")), None)
+        if backup is not None: self._wallpaperBackup = backup
+        if exit_code:
+            self._message = "Não foi possível concluir: " + (errors or output).strip()
+        elif self._wallpaperAction == "status":
+            try:
+                count = json.loads(output)["screens"]
+                self._screenChoices = ["Monitor " + str(i + 1) for i in range(count)] + ["Todos os monitores"]
+                targets = json.loads(output)["targets"]
+                filename = Path(QUrl(str(targets[0]["image"])).toLocalFile()).name if targets else ""
+                for ti, theme in enumerate(THEMES):
+                    for vi, variant in enumerate(theme["variants"]):
+                        if variant["file"] == filename: self.wallpaperSelected.emit(ti, vi)
+            except (ValueError, KeyError):
+                self._message = "Não foi possível consultar os monitores."
+        elif self._wallpaperAction == "rollback":
+            self._wallpaperBackup = None
+            self._message = "Wallpaper anterior restaurado."
+        else:
+            self._message = "Wallpaper aplicado com backup. Você pode desfazer nesta tela."
+        self.wallpaperChanged.emit()
+        self.changed.emit()
+
+    def wallpaperError(self):
+        self._message = self.wallpaperProcess.errorString()
+        self.wallpaperChanged.emit()
+        self.changed.emit()
 
     @Slot(str)
     def applyAppearance(self, mode):
@@ -162,18 +249,21 @@ class Center(QObject):
         self.appsChanged.emit()
 
     def start(self, command, arguments):
+        success = False
         try:
             success, _ = QProcess.startDetached(command, arguments)
             self._message = "Solicitação enviada ao aplicativo." if success else "Não foi possível iniciar o aplicativo."
         except (OSError, TypeError) as error:
             self._message = str(error)
         self.changed.emit()
+        return success
 
     @Slot(str)
     def launch(self, identifier):
         item = next((item for item in self._apps if item["id"] == identifier), None)
         if item and self.gio:
-            self.start(self.gio, ["launch", item["path"]])
+            if self.start(self.gio, ["launch", item["path"]]):
+                self.launchRequested.emit()
 
     @Slot(str)
     def openSettings(self, module):
@@ -198,18 +288,37 @@ class Center(QObject):
         self.metricsChanged.emit()
 
 
-def create_engine():
+def create_engine(launcher=False):
     QGuiApplication.setWindowIcon(QIcon.fromTheme("preferences-system"))
     backend = Center()
     engine = QQmlApplicationEngine()
-    engine.setInitialProperties({"backend": backend})
+    engine.setInitialProperties({"backend": backend, "launcherMode": launcher})
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "Main.qml")))
     return engine, backend
 
 
 if __name__ == "__main__":
-    app = QGuiApplication(sys.argv)
-    app.setApplicationName("brutall-center")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--launcher", action="store_true")
+    args = parser.parse_args()
+    app = QGuiApplication(sys.argv[:1])
+    app.setApplicationName("org.brutallos.Launcher" if args.launcher else "org.brutallos.Center")
+    app.setDesktopFileName("org.brutallos.Launcher" if args.launcher else "org.brutallos.Center")
     app.setOrganizationName("brutallOS")
-    engine, backend = create_engine()
-    sys.exit(app.exec() if engine.rootObjects() else 1)
+    instance = None
+    if args.launcher:
+        from instance import LauncherInstance
+        instance = LauncherInstance()
+        try:
+            if not instance.acquire(): sys.exit(0)
+        except RuntimeError as error:
+            print(error, file=sys.stderr)
+            sys.exit(1)
+    engine, backend = create_engine(args.launcher)
+    if not engine.rootObjects(): sys.exit(1)
+    if instance:
+        instance.bind(engine.rootObjects()[0])
+        app.aboutToQuit.connect(instance.close)
+    if args.launcher:
+        QTimer.singleShot(0, engine.rootObjects()[0].requestActivate)
+    sys.exit(app.exec())

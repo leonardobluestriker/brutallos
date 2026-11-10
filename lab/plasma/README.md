@@ -35,6 +35,27 @@ Para HiDPI real no compositor: `-e LAB_SESSION=wayland -e LAB_RESOLUTION=3840x21
 
 `showcase.py` produz capturas adicionais dos apps e wallpapers, sem repetir os testes de aplicação/reversão. O [relatório](../../docs/cloud-lab-report.md) distingue o que foi efetivamente validado das pendências.
 
+## Launcher e wallpapers
+
+Depois de criar a dock e registrar/conectar o launcher conforme o [guia](../../docs/launcher-and-wallpapers.md), execute na sessão X11:
+
+```sh
+docker exec brutallos-plasma-lab bash -c \
+  'source /tmp/brutall-session.env; python3 /project/lab/plasma/test-launcher-wallpaper.py'
+docker exec brutallos-plasma-lab bash -c \
+  'source /tmp/brutall-session.env; python3 /project/lab/plasma/test-wallpaper-ui.py'
+```
+
+O primeiro script altera e desfaz os nove wallpapers, exercita conexão/reversão e clica no launcher real da dock. Abre Dolphin ao testar Enter. O segundo seleciona as nove prévias na Central, aplica Purple Luna, captura o desktop inteiro e desfaz pela interface. Use somente no home descartável do laboratório.
+
+No contêiner Wayland com duas saídas, execute na respectiva sessão:
+
+```sh
+python3 /project/lab/plasma/test-wallpaper-multiscreen.py
+```
+
+Ele verifica aplicação/reversão nas duas telas e isolamento ao alterar apenas a segunda. Resultados e capturas ficam em `/results`. O [relatório desta entrega](../../docs/launcher-and-wallpapers.md) registra a tarefa extra do launcher observada no dock em Wayland.
+
 Encerrar o laboratório:
 
 ```sh

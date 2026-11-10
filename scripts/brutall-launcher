@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Register project desktop entries, preserving previous user files."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import sys
+import uuid
+from plasma_api import evaluate
+from user_files import atomic, snapshot, digest, restore
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def desktop_quote(text):
+    return '"' + str(text).replace("\\", "\\\\").replace('"', '\\"').replace('`', '\\`').replace('$', '\\$') + '"'
+
+
+def entries(data):
+    icon = data / "icons/hicolor/scalable/apps/org.brutallos.Launcher.svg"
+    common = "[Desktop Entry]\nType=Application\nTerminal=false\nStartupNotify=true\nCategories=Utility;\n"
+    execute = desktop_quote(ROOT / "scripts/brutall-center")
+    return {
+        data / "applications/org.brutallos.Launcher.desktop": (common + "Name=brutallOS Aplicativos\nNoDisplay=true\nIcon=" + str(icon) + "\nExec=" + execute + " --launcher\nStartupWMClass=org.brutallos.Launcher\n").encode(),
+        data / "applications/org.brutallos.Center.desktop": (common + "Name=Central brutallOS\nIcon=preferences-system\nExec=" + execute + "\nStartupWMClass=org.brutallos.Center\n").encode(),
+        icon: (ROOT / "assets/icons/brutall-launcher.svg").read_bytes(),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("plan", "install", "connect", "rollback"))
+    parser.add_argument("--backup", type=Path)
+    parser.add_argument("--screen", type=int, default=0)
+    args = parser.parse_args()
+    try:
+        data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
+        state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "brutallos/launcher"
+        if not data.is_absolute() or not state.is_absolute(): raise ValueError("Diretórios XDG devem ser absolutos.")
+        files = entries(data)
+        if args.action == "plan":
+            print(json.dumps([str(p) for p in files], indent=2))
+            return 0
+        state.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with (state / ".lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            if args.action == "connect":
+                entry = data / "applications/org.brutallos.Launcher.desktop"
+                if not entry.is_file(): raise ValueError("Execute install antes de conectar à dock.")
+                options = {"screen": args.screen, "url": entry.as_uri(), "owner": uuid.uuid4().hex}
+                current = evaluate("launcher-link.js", "brutallLauncher", "status", options)
+                if current["launcher"]["type"] == "org.kde.plasma.icon" and current["launcher"]["config"].get("url") == options["url"]:
+                    print("Launcher já conectado.")
+                    return 0
+                options["before"] = current["launcher"]
+                manifest = {"schemaVersion": 1, "kind": "connection", "options": options}
+                backup = state / (options["owner"] + ".json")
+                atomic(backup, json.dumps(manifest, indent=2).encode())
+                config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "plasma-org.kde.plasma.desktop-appletsrc"
+                if config.exists(): atomic(backup.with_suffix(".appletsrc"), config.read_bytes())
+                print("Backup: " + str(backup), flush=True)
+                print(json.dumps(evaluate("launcher-link.js", "brutallLauncher", "connect", options)))
+                return 0
+            if args.action == "rollback":
+                if args.backup is None: raise ValueError("Informe --backup.")
+                manifest = json.loads(args.backup.read_text())
+                if manifest.get("schemaVersion") == 1 and manifest.get("kind") == "connection":
+                    print(json.dumps(evaluate("launcher-link.js", "brutallLauncher", "restore", manifest["options"])))
+                    return 0
+                if manifest.get("schemaVersion") != 1 or {i["path"] for i in manifest["files"]} != {str(p) for p in files}:
+                    raise ValueError("Backup inválido para este usuário.")
+                restore(manifest["files"])
+                print("Registro dos aplicativos restaurado. Reverta a dock antes de remover seu launcher.")
+            else:
+                manifest = {"schemaVersion": 1, "files": snapshot(list(files))}
+                backup = state / (uuid.uuid4().hex + ".json")
+                atomic(backup, json.dumps(manifest, indent=2).encode())
+                print("Backup: " + str(backup), flush=True)
+                try:
+                    for path, content in files.items(): atomic(path, content)
+                finally:
+                    for item in manifest["files"]: item["after"] = digest(Path(item["path"]))
+                    atomic(backup, json.dumps(manifest, indent=2).encode())
+                print("Launcher e central registrados para este usuário.")
+            return 0
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(str(error), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__": sys.exit(main())

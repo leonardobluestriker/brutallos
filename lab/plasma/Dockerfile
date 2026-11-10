@@ -10,7 +10,7 @@ RUN --mount=type=secret,id=ca_bundle,required=true \
       plasma-nm plasma-pa powerdevil \
       xvfb x11-xserver-utils x11-utils xdotool dbus-x11 procps \
       python3 python3-pyside6.qtgui python3-pyside6.qtqml python3-pyside6.qtquick \
-      python3-pyside6.qttest python3-pil \
+      python3-pyside6.qttest python3-pyside6.qtnetwork python3-pil \
       qml6-module-qtquick-controls qml6-module-qtquick-layouts \
       qml6-module-qtquick-templates qml6-module-qtquick-window qml6-module-qtqml-workerscript \
       libgl1-mesa-dri fonts-dejavu-core libglib2.0-bin && \

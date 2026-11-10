@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Select original project wallpaper with a selective Plasma rollback."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import sys
+import uuid
+from user_files import atomic
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "apps/brutall-welcome"))
+from catalog import THEMES
+FILES = {variant["file"] for theme in THEMES for variant in theme["variants"]}
+
+
+from plasma_api import evaluate as plasma_evaluate
+
+
+def evaluate(action, options):
+    return plasma_evaluate("wallpaper.js", "brutallWallpaper", action, options)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("status", "plan", "apply", "rollback"))
+    parser.add_argument("--image", choices=sorted(FILES))
+    parser.add_argument("--screen", type=int, default=0)
+    parser.add_argument("--all-screens", action="store_true")
+    parser.add_argument("--backup", type=Path)
+    args = parser.parse_args()
+    try:
+        if args.action == "status":
+            print(json.dumps(evaluate("status", {}), ensure_ascii=False))
+            return 0
+        state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "brutallos/wallpaper"
+        if not state.is_absolute(): raise ValueError("XDG_STATE_HOME deve ser absoluto.")
+        if args.action in {"apply", "plan"}:
+            if args.image is None: raise ValueError("Informe --image.")
+            path = ROOT / "assets/wallpapers" / args.image
+            if not path.is_file(): raise ValueError("Imagem original não encontrada.")
+            current = evaluate("status", {})
+            selected = current["targets"] if args.all_screens else [item for item in current["targets"] if item["screen"] == args.screen]
+            if not selected: raise ValueError("Tela inválida ou desconectada.")
+            manifest = {"schemaVersion": 1, "phase": "prepared", "image": args.image,
+                        "targets": [{"before": item, "after": dict(item, plugin="org.kde.image", image=path.as_uri())} for item in selected]}
+            if args.action == "plan":
+                print(json.dumps(manifest, indent=2, ensure_ascii=False))
+                return 0
+        state.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with (state / ".lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            if args.action == "rollback":
+                if args.backup is None: raise ValueError("Informe --backup.")
+                manifest = json.loads(args.backup.read_text())
+                if manifest.get("schemaVersion") != 1: raise ValueError("Backup inválido.")
+                if manifest.get("phase") == "reverted":
+                    print("Wallpaper já restaurado.")
+                    return 0
+                result = evaluate("rollback", manifest)
+                manifest["phase"] = "reverted"
+                atomic(args.backup, json.dumps(manifest, indent=2).encode())
+            else:
+                backup = state / (uuid.uuid4().hex + ".json")
+                atomic(backup, json.dumps(manifest, indent=2).encode())
+                print("Backup: " + str(backup), flush=True)
+                config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "plasma-org.kde.plasma.desktop-appletsrc"
+                if config.exists(): atomic(backup.with_suffix(".appletsrc"), config.read_bytes())
+                result = evaluate("apply", manifest)
+                manifest["phase"] = "applied"
+                atomic(backup, json.dumps(manifest, indent=2).encode())
+            print(json.dumps(result, ensure_ascii=False))
+            return 0
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print("brutall-wallpaper: " + str(error), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__": sys.exit(main())
