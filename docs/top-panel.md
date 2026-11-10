@@ -1,5 +1,7 @@
 # Painel superior brutallOS
 
+**Atualização:** aplicação, reversão e persistência já foram testadas no laboratório cloud Plasma 6.3.6. O relato abaixo descreve também a validação inicial; veja [o resultado da integração](cloud-lab-report.md) para o estado atual e as limitações.
+
 Primeira implementação do shell: um painel Plasma nativo, criado pelas APIs públicas de desktop scripting. O script foi conferido contra o código do Plasma **6.3.6**. Não há plasmoid autoral, daemon adicional, polling de sensores ou dependência de PySide6 na ferramenta de aplicação.
 
 ## Composição

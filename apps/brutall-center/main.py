@@ -27,11 +27,11 @@ class Center(QObject):
         self._apps = applications()
         self._visible_apps = self._apps
         self.gio = shutil.which("gio")
-        self.kcmshell = shutil.which("kcmshell6")
+        self.settingsCommand = shutil.which("kcmshell6") or shutil.which("systemsettings")
         self.modules = set()
-        if self.kcmshell:
+        if self.settingsCommand:
             try:
-                listing = subprocess.run([self.kcmshell, "--list"], capture_output=True, text=True, timeout=5, check=True)
+                listing = subprocess.run([self.settingsCommand, "--list"], capture_output=True, text=True, timeout=5, check=True)
                 self.modules = {line.split()[0] for line in listing.stdout.splitlines() if line.strip()}
             except (OSError, subprocess.SubprocessError):
                 pass
@@ -55,7 +55,7 @@ class Center(QObject):
 
     @Property("QVariantList", constant=True)
     def settings(self):
-        return [dict(name=name, module=module, available=bool(self.kcmshell and module in self.modules)) for name, module in MODULES]
+        return [dict(name=name, module=module, available=bool(self.settingsCommand and module in self.modules)) for name, module in MODULES]
 
     @Property("QVariantMap", notify=metricsChanged)
     def metrics(self):
@@ -83,8 +83,8 @@ class Center(QObject):
 
     @Slot(str)
     def openSettings(self, module):
-        if module in {entry[1] for entry in MODULES} and module in self.modules and self.kcmshell:
-            self.start(self.kcmshell, [module])
+        if module in {entry[1] for entry in MODULES} and module in self.modules and self.settingsCommand:
+            self.start(self.settingsCommand, [module])
 
     @Slot()
     def openAppearance(self):

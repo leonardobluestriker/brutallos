@@ -1,5 +1,7 @@
 # Validação do brutall-welcome
 
+**Atualização:** o projeto agora tem 28 testes aprovados no Debian/Qt alvo e integração gráfica em cloud. Consulte [o relatório atual](cloud-lab-report.md). O restante deste documento registra o baseline e o roteiro da entrega inicial do Welcome.
+
 ## Ambiente desta entrega
 
 - Host: Debian GNU/Linux 13.6 (trixie).

@@ -4,6 +4,8 @@ Experiência desktop sobre Linux, KDE Plasma 6, KWin e Aurorae. A distribuição
 
 A referência técnica é [design-4.md](design-4.md), complementada pela [direção atual do produto](docs/product-direction.md). A sequência atual informada pelo projeto prevalece sobre a tarefa histórica de Fase 1 no final desse documento: **Welcome → painel superior → dock → launcher → configurações → Striker Tools**.
 
+**Laboratório cloud executado:** Debian 13, Plasma/KWin 6.3.6 e Qt 6.8.2, com sessões X11 e Wayland, duas saídas virtuais, escala 200% e 28 testes automatizados aprovados. [Relatório e screenshots do desktop inteiro](docs/cloud-lab-report.md). A decoração/temas Bru existentes ainda precisam ser fornecidos; as capturas usam Breeze provisoriamente.
+
 ## Painel superior
 
 Layout nativo para Plasma 6.3+: marca brutallOS com Kickoff funcional, menu global quando disponível, bandeja de status e data/hora. A aparência segue o tema Plasma ativo. A ferramenta prepara backup antes de criar o painel e oferece reversão apenas do painel criado; preserva os painéis existentes.
@@ -14,7 +16,7 @@ Inspeção sem sessão Plasma e sem alterações:
 scripts/brutall-top-panel plan --offline
 ```
 
-Os comandos de aplicação e reversão, dependências e roteiro para a VM estão em [Painel superior](docs/top-panel.md). O código foi conferido com Plasma 6.3.6 e testado com objetos simulados no motor JavaScript Qt; a validação numa sessão Plasma real permanece pendente.
+Os comandos de aplicação e reversão, dependências e roteiro para a VM estão em [Painel superior](docs/top-panel.md). A aplicação, reversão e persistência foram verificadas no laboratório Plasma real em contêiner. A validação em sessão completa de login e hardware/VM continua necessária; veja o relatório acima.
 
 ## Dock, launcher e Striker Tools
 
@@ -25,7 +27,7 @@ scripts/brutall-center
 scripts/brutall-dock plan --offline
 ```
 
-A dock usa o gerenciador de tarefas nativo, com agrupamento e seletor de janelas, além de backup/reversão seletiva. A central é executável localmente; os layouts do shell continuam aguardando validação na VM Plasma. Perfis Gamer/Economia e benchmarks são etapas futuras.
+A dock usa o gerenciador de tarefas nativo, com agrupamento e seletor de janelas, além de backup/reversão seletiva. A central e os layouts foram exercitados no laboratório gráfico cloud; os limites estão no relatório. Perfis Gamer/Economia e benchmarks são etapas futuras.
 
 ## brutall-welcome
 

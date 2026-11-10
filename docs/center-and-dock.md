@@ -1,5 +1,7 @@
 # Dock e Central brutallOS
 
+**Atualização:** foram executados testes gráficos X11/Wayland em cloud, com capturas do desktop inteiro. Consulte [o relatório de integração](cloud-lab-report.md) para os resultados atuais. A central aceita `systemsettings` como alternativa a `kcmshell6`, conforme disponibilidade no Debian.
+
 ## Executar a central
 
 Com o ambiente virtual preparado conforme o README:
@@ -18,7 +20,7 @@ O launcher autônomo lê arquivos `.desktop` de `XDG_DATA_HOME` e `XDG_DATA_DIRS
 
 ### Configurações
 
-O console tem atalhos reais para tela, som, rede, energia, data/hora, teclado e Bluetooth. Consulta `kcmshell6 --list` e só habilita módulos disponíveis. A edição ocorre nas interfaces nativas do KDE, com suas permissões e confirmações; a central não reescreve configurações do sistema. Mudanças feitas manualmente nesses módulos não são cobertas pelo backup dos painéis. Identidade abre o Welcome existente e mantém o mecanismo de backup/reversão das preferências dele.
+O console tem atalhos reais para tela, som, rede, energia, data/hora, teclado e Bluetooth. Consulta `kcmshell6 --list`, ou `systemsettings --list` quando o primeiro não está disponível, e só habilita módulos disponíveis. A edição ocorre nas interfaces nativas do KDE, com suas permissões e confirmações; a central não reescreve configurações do sistema. Mudanças feitas manualmente nesses módulos não são cobertas pelo backup dos painéis. Identidade abre o Welcome existente e mantém o mecanismo de backup/reversão das preferências dele.
 
 ### Striker Tools: monitoramento inicial
 

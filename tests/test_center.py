@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -60,6 +61,18 @@ class CenterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QGuiApplication.instance() or QGuiApplication([])
+
+    def test_systemsettings_fallback_discovers_and_opens_only_known_modules(self):
+        with patch.object(center.shutil, "which", side_effect=lambda name: "/mock/systemsettings" if name == "systemsettings" else None), \
+             patch.object(center.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "kcm_keyboard - Keyboard\nkcm_clock - Date and Time\n", "")):
+            backend = center.Center()
+        self.assertEqual(backend.settingsCommand, "/mock/systemsettings")
+        self.assertTrue(next(item for item in backend.settings if item["module"] == "kcm_keyboard")["available"])
+        with patch.object(backend, "start") as start:
+            backend.openSettings("kcm_keyboard")
+            start.assert_called_once_with("/mock/systemsettings", ["kcm_keyboard"])
+            backend.openSettings("untrusted-module")
+            self.assertEqual(start.call_count, 1)
 
     def test_real_qml_pages_keyboard_search_and_monitor_pause(self):
         engine, backend = center.create_engine()
