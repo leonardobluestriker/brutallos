@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+"""Plan, apply and remove the brutallOS top panel using Plasma's D-Bus API."""
+import argparse
+from contextlib import contextmanager
+from datetime import datetime, timezone
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import uuid
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "plasma/layouts/top-panel.js"
+PREFIX = "BRUTALL_PANEL_RESULT:"
+CONFIG_FILES = ("plasma-org.kde.plasma.desktop-appletsrc", "plasmashellrc")
+
+
+def xdg_directory(variable, fallback):
+    path = Path(os.environ.get(variable) or fallback)
+    if not path.is_absolute():
+        raise ValueError(variable + " deve ser um caminho absoluto.")
+    return path
+
+
+def default_state(layout="top"):
+    return xdg_directory("XDG_STATE_HOME", Path.home() / ".local/state") / ("brutallos/" + ("dock" if layout == "dock" else "top-panel"))
+
+
+def atomic_json(path, value):
+    descriptor, name = tempfile.mkstemp(prefix=".panel-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, indent=2, ensure_ascii=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+
+
+class Plasma:
+    def __init__(self):
+        self.command = next((str(path) for path in (
+            shutil.which("qdbus6"), "/usr/lib/qt6/bin/qdbus", shutil.which("qdbus-qt6")
+        ) if path and Path(path).is_file() and os.access(path, os.X_OK)), None)
+        if self.command is None:
+            raise ValueError("qdbus Qt 6 não encontrado. Execute numa sessão Plasma 6 com qdbus-qt6 disponível.")
+        version = subprocess.run(["plasmashell", "--version"], text=True, capture_output=True,
+                                 timeout=10, check=True)
+        release = re.search(r"plasmashell (\d+)\.(\d+)(?:\.(\d+))?", version.stdout)
+        if not release or int(release[1]) != 6 or int(release[2]) < 3:
+            raise ValueError("Este layout exige Plasma 6.3 ou posterior na série 6; baseline: 6.3.6.")
+        self.version = version.stdout.strip()
+
+    def evaluate(self, action, options):
+        # JSON is embedded into JavaScript, never interpolated into a shell.
+        code = SCRIPT.read_text(encoding="utf-8") + "\nprint(" + json.dumps(PREFIX) + "+JSON.stringify(brutallTopPanel(" + json.dumps(action) + "," + json.dumps(options) + ")));"
+        try:
+            result = subprocess.run([self.command, "org.kde.plasmashell", "/PlasmaShell",
+                                     "org.kde.PlasmaShell.evaluateScript", code],
+                                    capture_output=True, text=True, timeout=45)
+        except subprocess.TimeoutExpired as error:
+            raise TimeoutError("D-Bus não respondeu em 45 segundos; o resultado remoto é desconhecido.") from error
+        if result.returncode:
+            raise ValueError("Falha no D-Bus Plasma: " + (result.stderr or result.stdout).strip()[:1500])
+        if PREFIX not in result.stdout:
+            raise ValueError("Plasma não retornou um resultado verificável: " + result.stdout.strip())
+        return json.loads(result.stdout.split(PREFIX, 1)[1].strip())
+
+
+@contextmanager
+def mutation_lock(directory):
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (directory / ".lock").open("a") as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        yield
+
+
+def backup(state_dir, config_dir, plan, options, version):
+    owner = uuid.uuid4().hex
+    destination = state_dir / "backups" / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + owner)
+    destination.mkdir(parents=True, mode=0o700)
+    files = {}
+    for name in CONFIG_FILES:
+        source = config_dir / name
+        data = source.read_bytes() if source.exists() else None
+        files[name] = {"existed": data is not None, "sha256": hashlib.sha256(data).hexdigest() if data is not None else None}
+        if data is not None:
+            fd = os.open(destination / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(data)
+                stream.flush()
+                os.fsync(stream.fileno())
+    # Preserve the layout source for auditing alongside the original config files.
+    shutil.copyfile(SCRIPT, destination / "top-panel.js")
+    manifest = {"schemaVersion": 1, "phase": "prepared", "owner": owner,
+                "options": options, "plasmaVersion": version, "configDir": str(config_dir),
+                "plan": plan, "files": files}
+    atomic_json(destination / "manifest.json", manifest)
+    return destination, manifest
+
+
+def apply(plasma, state_dir, config_dir, options):
+    with mutation_lock(state_dir):
+        plan = plasma.evaluate("plan", options)
+        if plan["existing"]:
+            if len(plan["existing"]) != 1:
+                raise ValueError("Mais de um painel brutallOS encontrado. Consulte status.")
+            return {"state": "unchanged", "id": plan["existing"][0]["id"]}
+        if not plan["canApply"]:
+            raise ValueError("Plano bloqueado: " + json.dumps(plan, ensure_ascii=False))
+        destination, manifest = backup(state_dir, config_dir, plan, options, plasma.version)
+        print("Backup: " + str(destination), file=sys.stderr, flush=True)
+        try:
+            result = plasma.evaluate("apply", dict(options, owner=manifest["owner"]))
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            # A transport failure does not prove the remote action never happened.
+            manifest["phase"] = "uncertain"
+            manifest["error"] = str(error)
+            atomic_json(destination / "manifest.json", manifest)
+            raise ValueError("Resultado não confirmado. Backup: " + str(destination) +
+                             ". Use status e rollback --backup nesse diretório. " + str(error)) from error
+        manifest["phase"] = result["state"]
+        manifest["result"] = result
+        atomic_json(destination / "manifest.json", manifest)
+        return dict(result, backup=str(destination))
+
+
+def rollback(plasma, state_dir, destination):
+    with mutation_lock(state_dir):
+        manifest_path = destination / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("schemaVersion") != 1 or not isinstance(manifest.get("owner"), str) or not manifest["owner"]:
+            raise ValueError("Backup de painel inválido.")
+        result = plasma.evaluate("rollback", dict(manifest["options"], owner=manifest["owner"]))
+        manifest["phase"] = "reverted"
+        manifest["rollback"] = result
+        atomic_json(manifest_path, manifest)
+        return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="action", required=True)
+    for action in ("plan", "status", "apply", "rollback"):
+        command = sub.add_parser(action)
+        command.add_argument("--layout", choices=("top", "dock"), default="top")
+        command.add_argument("--screen", type=int, default=0, help="Índice de tela do Plasma (padrão: 0)")
+        if action == "plan":
+            command.add_argument("--offline", action="store_true", help="Mostra estrutura sem acessar a sessão")
+        if action == "apply":
+            command.add_argument("--height", type=int, choices=range(28, 65), default=None, metavar="28..64")
+        if action == "rollback":
+            command.add_argument("--backup", type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        if args.screen < 0:
+            raise ValueError("O índice de tela deve ser positivo ou zero.")
+        options = {"screen": args.screen, "layout": args.layout,
+                   "height": getattr(args, "height", None) or (56 if args.layout == "dock" else 36)}
+        if args.layout == "dock":
+            sys.path.insert(0, str(ROOT / "apps/brutall-center"))
+            from services import applications
+            installed = applications()
+            candidates = ["org.kde.dolphin.desktop", "firefox.desktop", "firefox-esr.desktop", "org.kde.konsole.desktop"]
+            options["launchers"] = ["applications:" + name for name in candidates
+                                    if name in {item["id"] for item in installed}]
+            options["launchers"] += ["applications:" + item["id"] for item in installed
+                                     if item["name"].casefold() in {"photocraft", "filmcraft", "wordcraft", "gridcraft", "deckcraft"}]
+        if args.action == "plan" and args.offline:
+            result = {"mode": "offline", "verifiedAgainst": "Plasma 6.3.6 source", "options": options,
+                      "layout": ["brutallOS / Kickoff", "menu global (quando disponível)", "espaçador", "bandeja nativa", "data e hora"],
+                      "style": "tema Plasma ativo, opaco",
+                      "changes": "adiciona um painel; preserva os existentes",
+                      "runtimeValidated": False}
+            if args.layout == "dock":
+                result["layout"] = ["Kickoff", "gerenciador de tarefas por ícones nativo"]
+                result["style"] += ", flutuante e centralizado, largura ajustada ao conteúdo"
+        else:
+            plasma = Plasma()
+            if args.action == "apply":
+                result = apply(plasma, default_state(args.layout), xdg_directory("XDG_CONFIG_HOME", Path.home() / ".config"), options)
+            elif args.action == "rollback":
+                result = rollback(plasma, default_state(args.layout), args.backup.resolve())
+            else:
+                result = plasma.evaluate(args.action, options)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print("brutall-top-panel: " + str(error), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

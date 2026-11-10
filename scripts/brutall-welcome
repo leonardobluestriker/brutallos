@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+WELCOME_PYTHON=${WELCOME_PYTHON:-"$PROJECT_DIR/.venv/bin/python"}
+if [ ! -x "$WELCOME_PYTHON" ]; then
+    echo 'Prepare o ambiente virtual conforme o README ou defina WELCOME_PYTHON.' >&2
+    exit 1
+fi
+exec "$WELCOME_PYTHON" "$PROJECT_DIR/apps/brutall-welcome/main.py" "$@"
