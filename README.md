@@ -1,7 +1,7 @@
 # brutallOS
 
 <p align="center">
-  <strong>Tá tudo na tela. Vem!</strong><br>
+  <strong>Tá tudo na tela. Vem que é livre!</strong><br>
   Linux + KDE Plasma 6 · Bru · Raio · Strikerzinho &amp; Friends
 </p>
 
