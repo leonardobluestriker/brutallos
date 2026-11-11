@@ -1,5 +1,7 @@
 # Launcher próprio e wallpapers originais
 
+**Etapa posterior:** [cores ajustáveis da interface](interface-colors.md), com destaque automático por tema, HEX personalizado e fundos/molduras coloridos. As capturas e a contagem de testes abaixo registram a etapa anterior.
+
 Entrega validada em 10/11/2026 no laboratório Debian 13, Plasma/KWin 6.3.6, Qt 6.8.2 e PySide6 6.8.2.1.
 
 O botão de quatro quadrados da dock abre o launcher brutallOS, com busca, categorias e ícones dos aplicativos realmente instalados. A busca recebe foco ao abrir; Enter solicita a abertura do primeiro resultado, Escape fecha. Uma segunda solicitação ativa a janela existente na mesma sessão gráfica. Ao fechar ou abrir um app, o processo do launcher termina.

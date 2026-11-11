@@ -1,17 +1,17 @@
 """Stable IDs for onboarding preferences; no shell commands or fake app launchers."""
 THEMES = [
     {"id": "bru", "name": "Bru", "variants": [
-        {"id": "light", "name": "Claro", "file": "BRULITE.png"},
-        {"id": "dark", "name": "Escuro", "file": "BRUDARK.png"},
-        {"id": "original", "name": "Original", "file": "BRU1.png"}]},
+        {"id": "light", "name": "Claro", "file": "BRULITE.png", "accent": "#1557ff"},
+        {"id": "dark", "name": "Escuro", "file": "BRUDARK.png", "accent": "#1557ff"},
+        {"id": "original", "name": "Original", "file": "BRU1.png", "accent": "#1557ff"}]},
     {"id": "raio", "name": "Raio", "variants": [
-        {"id": "light", "name": "Claro", "file": "RAIOLITE.png"},
-        {"id": "dark", "name": "Escuro", "file": "RAIODARK.png"},
-        {"id": "original", "name": "Original", "file": "RAIO1.png"}]},
+        {"id": "light", "name": "Claro", "file": "RAIOLITE.png", "accent": "#e91e86"},
+        {"id": "dark", "name": "Escuro", "file": "RAIODARK.png", "accent": "#e91e86"},
+        {"id": "original", "name": "Original", "file": "RAIO1.png", "accent": "#e91e86"}]},
     {"id": "friends", "name": "Strikerzinho & Friends", "variants": [
-        {"id": "blue", "name": "Blue Striker", "file": "BLUESTRIKER.png"},
-        {"id": "green", "name": "Green Thunder", "file": "GREENTHUNDER.png"},
-        {"id": "purple", "name": "Purple Luna", "file": "PURPLELUNA.png"}]},
+        {"id": "blue", "name": "Blue Striker", "file": "BLUESTRIKER.png", "accent": "#1557ff"},
+        {"id": "green", "name": "Green Thunder", "file": "GREENTHUNDER.png", "accent": "#299447"},
+        {"id": "purple", "name": "Purple Luna", "file": "PURPLELUNA.png", "accent": "#9333ea"}]},
 ]
 PRESETS = [
     {"id": "creative", "name": "Criativo", "description": "Da primeira ideia ao último frame.",

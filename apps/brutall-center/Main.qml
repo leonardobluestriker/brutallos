@@ -11,6 +11,8 @@ ApplicationWindow {
     property int launcherCategory: 0
     property int themeIndex: 0
     property int variantIndex: 2
+    property string customAccent: ""
+    property bool tinted: true
     readonly property var chosenTheme: backend.themePreviews[themeIndex]
     readonly property var chosenVariant: chosenTheme.variants[variantIndex]
     visible: true
@@ -20,10 +22,14 @@ ApplicationWindow {
     title: launcherMode ? qsTr("Aplicativos brutallOS") : qsTr("Central brutallOS")
     property int page: 0
     property bool dark: backend.systemDark
-    readonly property color paper: dark ? "#101322" : "#f6f7fc"
-    readonly property color surface: dark ? "#1c2235" : "#edf0f8"
-    readonly property color ink: dark ? "#f4f5f9" : "#101322"
-    readonly property color accent: "#dfff00"
+    readonly property var tones: backend.uiPalette(customAccent || chosenVariant.accent, dark, tinted)
+    readonly property color paper: tones.paper
+    readonly property color surface: tones.surface
+    readonly property color ink: tones.ink
+    readonly property color accent: tones.accent
+    readonly property color accentText: tones.accentText
+    readonly property color focusColor: tones.focus
+    onAccentChanged: { if (!accentInput.activeFocus) accentInput.text = accent.toString() }
     color: paper
     palette.window: paper
     palette.base: paper
@@ -31,7 +37,12 @@ ApplicationWindow {
     palette.button: surface
     palette.buttonText: ink
     palette.highlight: accent
-    palette.highlightedText: "#101322"
+    palette.accent: accent
+    palette.highlightedText: accentText
+    palette.link: tones.link
+    palette.light: surface
+    palette.mid: tones.border
+    palette.dark: tones.border
     font.pixelSize: 14
     function updateMonitoring() { backend.setMonitoring(page === 2 && visibility !== Window.Minimized && visible) }
     onPageChanged: { updateMonitoring(); if (page === 3) backend.refreshWallpaperState() }
@@ -41,7 +52,20 @@ ApplicationWindow {
     }
     function showWallpaperThemes() { identityScroll.contentItem.contentY = 0 }
     Shortcut { sequence: "Escape"; enabled: win.launcherMode; onActivated: win.close() }
-    Component.onCompleted: { if (launcherMode) searchField.forceActiveFocus() }
+    function loadInterface() {
+        const p = backend.interfaceSettings
+        variantIndex = 0
+        themeIndex = Math.max(0, backend.themePreviews.findIndex(t => t.id === p.theme))
+        variantIndex = Math.max(0, chosenTheme.variants.findIndex(v => v.id === p.variant))
+        customAccent = p.accent || ""
+        tinted = p.tinted
+        dark = p.mode === "dark"
+    }
+    Component.onCompleted: {
+        loadInterface()
+        if (launcherMode) searchField.forceActiveFocus()
+        backend.refreshWallpaperState()
+    }
     onClosing: { if (launcherMode) Qt.quit() }
     onVisibilityChanged: updateMonitoring()
 
@@ -53,8 +77,8 @@ ApplicationWindow {
         hoverEnabled: true
         opacity: enabled ? 1 : 0.45
         Accessible.name: text
-        contentItem: Text { text: control.text; font: control.font; color: control.checked ? "#101322" : win.ink; wrapMode: Text.WordWrap; verticalAlignment: Text.AlignVCenter }
-        background: Rectangle { radius: 20; color: control.checked ? win.accent : (control.hovered || control.down ? (win.dark ? "#30394f" : "#e3e6ed") : win.surface); border.width: control.visualFocus ? 3 : 1; border.color: control.visualFocus ? "#1557ff" : (win.dark ? "#59617b" : "#9da4b5") }
+        contentItem: Text { text: control.text; font: control.font; color: control.checked ? win.accentText : win.ink; wrapMode: Text.WordWrap; verticalAlignment: Text.AlignVCenter }
+        background: Rectangle { radius: 20; color: control.checked ? win.accent : (control.hovered || control.down ? win.tones.hover : win.surface); border.width: control.visualFocus ? 3 : 1; border.color: control.visualFocus ? win.focusColor : win.tones.border }
     }
     header: Rectangle {
         height: 58; color: win.paper
@@ -111,9 +135,11 @@ ApplicationWindow {
                     Layout.leftMargin: 24; Layout.rightMargin: 24; Layout.fillWidth: true
                     implicitHeight: 48
                     color: win.ink
-                    placeholderTextColor: win.dark ? "#bac2d9" : "#50576b"
+                    placeholderTextColor: win.tones.muted
+                    selectionColor: win.accent
+                    selectedTextColor: win.accentText
                     leftPadding: 16
-                    background: Rectangle { radius: 14; color: win.surface; border.color: searchField.activeFocus ? "#1557ff" : "#59617b"; border.width: searchField.activeFocus ? 3 : 1 }
+                    background: Rectangle { radius: 14; color: win.surface; border.color: searchField.activeFocus ? win.focusColor : win.tones.border; border.width: searchField.activeFocus ? 3 : 1 }
                     placeholderText: qsTr("Buscar aplicativos instalados…")
                     Accessible.name: placeholderText
                     onTextChanged: win.backend.search(text)
@@ -235,7 +261,7 @@ ApplicationWindow {
                                 checked: win.themeIndex === index
                                 Accessible.name: modelData.name
                                 onClicked: { win.variantIndex = 0; win.themeIndex = index }
-                                background: Rectangle { radius: 14; color: win.surface; border.width: themeCard.checked || themeCard.visualFocus ? 3 : 1; border.color: themeCard.checked ? win.accent : (win.dark ? "#59617b" : "#9da4b5") }
+                                background: Rectangle { radius: 14; color: win.surface; border.width: themeCard.checked || themeCard.visualFocus ? 3 : 1; border.color: themeCard.checked || themeCard.visualFocus ? win.focusColor : win.tones.border }
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 10
                                     Copy { width: parent.width; text: themeCard.modelData.name; font.bold: true; font.pixelSize: 12 }
@@ -243,13 +269,6 @@ ApplicationWindow {
                                 }
                             }
                         }
-                    }
-                    Copy { text: qsTr("Bru · moldura e cores"); font.bold: true }
-                    Row {
-                        spacing: 12
-                        Action { objectName: "applyLight"; text: qsTr("Aplicar Bru claro"); enabled: win.backend.canApplyAppearance && !win.backend.appearanceBusy; onClicked: win.backend.applyAppearance("light") }
-                        Action { objectName: "applyDark"; text: qsTr("Aplicar Bru escuro"); enabled: win.backend.canApplyAppearance && !win.backend.appearanceBusy; onClicked: win.backend.applyAppearance("dark") }
-                        Action { objectName: "undoAppearance"; text: qsTr("Desfazer"); visible: win.backend.canUndoAppearance; enabled: !win.backend.appearanceBusy; onClicked: win.backend.undoAppearance() }
                     }
                     Copy { text: qsTr("Wallpaper original"); font.bold: true }
                     Flow {
@@ -265,14 +284,56 @@ ApplicationWindow {
                             }
                         }
                     }
-                    Image { objectName: "wallpaperPreview"; readonly property bool loaded: status === Image.Ready; width: parent.width - 56; height: 120; source: win.chosenVariant.url; fillMode: Image.PreserveAspectFit; Accessible.name: win.chosenTheme.name + " / " + win.chosenVariant.name }
+                    Image { objectName: "wallpaperPreview"; readonly property bool loaded: status === Image.Ready; width: parent.width - 56; height: 80; source: win.chosenVariant.url; fillMode: Image.PreserveAspectFit; Accessible.name: win.chosenTheme.name + " / " + win.chosenVariant.name }
+                    Copy { text: qsTr("Cores da interface"); font.bold: true }
+                    Flow {
+                        width: parent.width - 56; spacing: 10
+                        Repeater {
+                            model: [{name: qsTr("Azul"), color: "#1557ff"}, {name: qsTr("Rosa"), color: "#e91e86"}, {name: qsTr("Roxo"), color: "#9333ea"}, {name: qsTr("Verde"), color: "#299447"}, {name: qsTr("Âmbar"), color: "#e99a18"}, {name: qsTr("Ciano"), color: "#0099b8"}]
+                            delegate: Button {
+                                id: swatch
+                                required property var modelData
+                                implicitWidth: 38; implicitHeight: 38
+                                Accessible.name: qsTr("Destaque ") + modelData.name
+                                onClicked: { win.customAccent = modelData.color; accentInput.text = win.accent.toString() }
+                                background: Rectangle { radius: 19; color: swatch.modelData.color; border.width: swatch.visualFocus || win.accent.toString() === swatch.modelData.color ? 3 : 1; border.color: win.ink }
+                                contentItem: Text { text: win.accent.toString() === swatch.modelData.color ? "✓" : ""; color: win.accentText; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true }
+                                ToolTip.visible: hovered; ToolTip.text: modelData.name
+                            }
+                        }
+                        Action { objectName: "automaticAccent"; text: qsTr("Usar cor do tema"); checked: win.customAccent === ""; onClicked: { win.customAccent = ""; accentInput.text = win.accent.toString() } }
+                    }
+                    Flow {
+                        width: parent.width - 56; spacing: 10
+                        TextField {
+                            id: accentInput
+                            objectName: "accentInput"
+                            implicitWidth: 135; implicitHeight: 42; leftPadding: 14
+                            text: win.accent.toString(); color: win.ink
+                            Accessible.name: qsTr("Cor de destaque hexadecimal")
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Digite #RGB ou #RRGGBB e pressione Enter.")
+                            validator: RegularExpressionValidator { regularExpression: /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/ }
+                            onEditingFinished: { if (acceptableInput && text.toLowerCase() !== win.accent.toString()) win.customAccent = text }
+                            onAccepted: { if (acceptableInput) win.customAccent = text }
+                            background: Rectangle { radius: 14; color: win.surface; border.width: accentInput.activeFocus ? 3 : 1; border.color: accentInput.activeFocus ? win.focusColor : win.tones.border }
+                        }
+                        Action { objectName: "tintedSurfaces"; text: qsTr("Colorir fundos e molduras"); checked: win.tinted; onClicked: win.tinted = !win.tinted }
+                        Copy { text: win.customAccent === "" ? qsTr("Automático · ") + win.chosenVariant.name : qsTr("Cor personalizada"); height: 42; verticalAlignment: Text.AlignVCenter; opacity: 0.8 }
+                    }
+                    Flow {
+                        width: parent.width - 56; spacing: 10
+                        Action { objectName: "applyLight"; text: qsTr("Aplicar interface clara"); enabled: accentInput.acceptableInput && win.backend.canApplyAppearance && !win.backend.appearanceBusy; onClicked: win.backend.applyAppearance("light", win.chosenTheme.id, win.chosenVariant.id, win.customAccent || "auto", win.tinted) }
+                        Action { objectName: "applyDark"; text: qsTr("Aplicar interface escura"); enabled: accentInput.acceptableInput && win.backend.canApplyAppearance && !win.backend.appearanceBusy; onClicked: win.backend.applyAppearance("dark", win.chosenTheme.id, win.chosenVariant.id, win.customAccent || "auto", win.tinted) }
+                        Action { objectName: "undoAppearance"; text: qsTr("Desfazer cores"); visible: win.backend.canUndoAppearance; enabled: !win.backend.appearanceBusy; onClicked: win.backend.undoAppearance() }
+                    }
                     Flow {
                         width: parent.width - 56; spacing: 10
                         Basic.ComboBox { id: wallpaperScreen; model: win.backend.screenChoices; implicitWidth: 190; Accessible.name: qsTr("Monitor para o wallpaper") }
                         Action { objectName: "applyWallpaper"; text: qsTr("Aplicar wallpaper"); enabled: win.backend.canApplyWallpaper && !win.backend.wallpaperBusy && !win.backend.appearanceBusy; onClicked: win.backend.applyWallpaper(win.chosenVariant.file, wallpaperScreen.currentIndex) }
                         Action { objectName: "undoWallpaper"; text: qsTr("Desfazer wallpaper"); visible: win.backend.canUndoWallpaper; enabled: !win.backend.wallpaperBusy; onClicked: win.backend.undoWallpaper() }
                     }
-                    Copy { width: parent.width - 56; text: qsTr("Atividade atual · imagem original com backup. Paleta e painéis são preservados."); opacity: 0.7 }
+                    Copy { width: parent.width - 56; text: qsTr("Prévia ao escolher. Aplique a interface para salvar suas cores; aplique o wallpaper para mudar a imagem. Ambos têm backup e opção de desfazer."); opacity: 0.7 }
                     Action { text: qsTr("Reabrir o Welcome →"); onClicked: win.backend.openAppearance() }
                 }
             }
@@ -283,6 +344,7 @@ ApplicationWindow {
         function onAppearanceApplied(darkMode) { win.dark = darkMode }
         function onLaunchRequested() { if (win.launcherMode) win.close() }
         function onWallpaperSelected(ti, vi) { win.variantIndex = 0; win.themeIndex = ti; win.variantIndex = vi }
+        function onInterfaceChanged() { win.loadInterface() }
     }
     footer: Copy { padding: 16; text: win.backend.message; visible: text.length > 0 }
 }

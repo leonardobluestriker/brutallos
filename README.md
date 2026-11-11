@@ -1,12 +1,14 @@
 # brutallOS
 
-**Entrega atual:** launcher próprio conectado à dock, busca/categorias, seleção dos nove wallpapers originais por monitor e backup/desfazer. Bru claro/escuro inclui sinaleiro nativo Aurorae à esquerda. [Guia, validação e capturas completas](docs/launcher-and-wallpapers.md).
+**Entrega atual:** destaque ajustável, cor automática por tema e fundos/molduras coloridos ou neutros, em modo claro/escuro. Purple Luna usa roxo. [Guia, validação e capturas completas](docs/interface-colors.md).
+
+O [launcher próprio conectado à dock e os nove wallpapers originais](docs/launcher-and-wallpapers.md) continuam disponíveis com backup/desfazer. A decoração Bru mantém o sinaleiro nativo Aurorae à esquerda.
 
 Experiência desktop sobre Linux, KDE Plasma 6, KWin e Aurorae. A distribuição própria é uma etapa posterior.
 
 A referência técnica é [design-4.md](design-4.md), complementada pela [direção atual do produto](docs/product-direction.md). A sequência atual informada pelo projeto prevalece sobre a tarefa histórica de Fase 1 no final desse documento: **Welcome → painel superior → dock → launcher → configurações → Striker Tools**.
 
-**Laboratório cloud executado:** Debian 13, Plasma/KWin 6.3.6 e Qt 6.8.2, com 36 testes automatizados aprovados. A nova etapa validou launcher/dock, aplicação/reversão dos nove wallpapers e duas saídas Wayland. Escala 200% foi exercitada na etapa anterior. [Relatório atual](docs/launcher-and-wallpapers.md) e [histórico do laboratório](docs/cloud-lab-report.md). As capturas atuais usam a nova decoração Bru; as históricas usam Breeze.
+**Laboratório cloud executado:** Debian 13, Plasma/KWin 6.3.6 e Qt 6.8.2, com 40 testes automatizados aprovados e validação das cores nativas em X11/Wayland. Etapas anteriores validaram launcher/dock, aplicação/reversão dos nove wallpapers e duas saídas Wayland; escala 200% também foi exercitada antes. [Relatório atual](docs/interface-colors.md) e [histórico do laboratório](docs/cloud-lab-report.md). As capturas atuais usam a decoração Bru; as primeiras históricas usam Breeze.
 
 ## Painel superior
 

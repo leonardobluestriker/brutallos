@@ -5,6 +5,8 @@ import shutil
 import subprocess
 import sys
 import argparse
+import json
+import os
 
 from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer, QUrl, QProcess, QTemporaryDir
 from PySide6.QtGui import QGuiApplication, QIcon
@@ -14,6 +16,7 @@ from services import applications, Metrics
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "apps/brutall-welcome"))
 from catalog import THEMES
+from identity import palette, read_settings, settings
 
 MODULES = [("Tela", "kcm_kscreen"), ("Som", "kcm_pulseaudio"), ("Rede", "kcm_networkmanagement"),
            ("Energia", "kcm_powerdevilprofilesconfig"), ("Data e hora", "kcm_clock"),
@@ -28,10 +31,13 @@ class Center(QObject):
     launchRequested = Signal()
     wallpaperChanged = Signal()
     wallpaperSelected = Signal(int, int)
+    interfaceChanged = Signal()
 
     def __init__(self):
         super().__init__()
         self._message = ""
+        self.interfacePath = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "brutallos/interface.json"
+        self.loadInterface()
         self._wallpaperBackup = None
         self._screenChoices = ["Monitor 1", "Todos os monitores"]
         self.wallpaperProcess = QProcess(self)
@@ -81,6 +87,23 @@ class Center(QObject):
     @Property(bool, constant=True)
     def systemDark(self):
         return QGuiApplication.palette().window().color().lightness() < 128
+
+    def loadInterface(self):
+        self._interfaceSaved = self.interfacePath.exists()
+        try:
+            self._interface = read_settings(self.interfacePath, self.systemDark)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            self._interface = settings(mode="dark" if self.systemDark else "light")
+            self._message = "Não foi possível ler a preferência de interface: " + str(error)
+        self.interfaceChanged.emit()
+
+    @Property("QVariantMap", notify=interfaceChanged)
+    def interfaceSettings(self):
+        return self._interface
+
+    @Slot(str, bool, bool, result="QVariantMap")
+    def uiPalette(self, accent, dark, tinted):
+        return palette(accent, dark, tinted)
 
     @Property(bool, constant=True)
     def canApplyAppearance(self):
@@ -158,7 +181,7 @@ class Center(QObject):
                 filename = Path(QUrl(str(targets[0]["image"])).toLocalFile()).name if targets else ""
                 for ti, theme in enumerate(THEMES):
                     for vi, variant in enumerate(theme["variants"]):
-                        if variant["file"] == filename: self.wallpaperSelected.emit(ti, vi)
+                        if variant["file"] == filename and not self._interfaceSaved: self.wallpaperSelected.emit(ti, vi)
             except (ValueError, KeyError):
                 self._message = "Não foi possível consultar os monitores."
         elif self._wallpaperAction == "rollback":
@@ -174,14 +197,21 @@ class Center(QObject):
         self.wallpaperChanged.emit()
         self.changed.emit()
 
-    @Slot(str)
-    def applyAppearance(self, mode):
+    @Slot(str, str, str, str, bool)
+    def applyAppearance(self, mode, theme, selected, accent, tinted):
         if mode not in {"light", "dark"} or self.appearanceBusy or not self.canApplyAppearance:
+            return
+        try:
+            identity = settings(theme, selected, None if accent == "auto" else accent, tinted, mode)
+        except ValueError as error:
+            self._message = str(error)
+            self.changed.emit()
             return
         self._appearanceMode = mode
         self._pendingAppearancePreviousDark = QGuiApplication.palette().window().color().lightness() < 128
-        self._message = "Aplicando Bru com backup…"
-        self.appearanceProcess.start(sys.executable, [str(ROOT / "scripts/brutall-appearance"), "apply", "--mode", mode])
+        self._message = "Aplicando cores da interface com backup…"
+        self.appearanceProcess.start(sys.executable, [str(ROOT / "scripts/brutall-appearance"), "apply", "--mode", mode,
+            "--theme", theme, "--variant", selected, "--accent", identity["accent"] or "auto", "--tinted", "yes" if tinted else "no"])
         self.changed.emit()
 
     def appearanceFinished(self, exit_code, status):
@@ -197,11 +227,14 @@ class Center(QObject):
             if self._appearanceMode == "rollback":
                 self._appearanceBackup = None
                 self._message = "Aparência anterior restaurada. Reabra outros apps para recarregar as cores."
+                self.loadInterface()
                 self.appearanceApplied.emit(self._appearancePreviousDark)
+                self.refreshWallpaperState()
             else:
                 self._appearancePreviousDark = self._pendingAppearancePreviousDark
                 self._appearanceBackup = next((line[8:].strip() for line in output.splitlines() if line.startswith("Backup: ")), None)
-                self._message = "Bru aplicado com backup. Você pode desfazer a última aplicação nesta tela."
+                self._message = "Cores aplicadas e salvas com backup. O launcher usará esta identidade ao abrir."
+                self.loadInterface()
                 self.appearanceApplied.emit(self._appearanceMode == "dark")
         self.changed.emit()
 

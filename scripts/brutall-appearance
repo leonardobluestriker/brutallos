@@ -16,6 +16,8 @@ THEME = "org.brutallos.bru"
 
 
 from user_files import atomic, digest, snapshot, restore
+sys.path.insert(0, str(ROOT / "apps/brutall-welcome"))
+from identity import settings, read_settings, variant, palette, color_scheme
 
 
 def destinations(config, data):
@@ -38,6 +40,10 @@ def main():
     parser.add_argument("action", choices=("plan", "apply", "rollback"))
     parser.add_argument("--mode", choices=("light", "dark"), default="light")
     parser.add_argument("--backup", type=Path)
+    parser.add_argument("--theme", choices=("bru", "raio", "friends"))
+    parser.add_argument("--variant")
+    parser.add_argument("--accent", help="auto, #RGB ou #RRGGBB")
+    parser.add_argument("--tinted", choices=("yes", "no"))
     args = parser.parse_args()
     try:
         config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
@@ -45,9 +51,18 @@ def main():
         state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "brutallos/appearance"
         if not all(path.is_absolute() for path in (config, data, state)):
             raise ValueError("Os diretórios XDG devem ser absolutos.")
-        copied, paths = destinations(config, data)
+        copied, legacy_paths = destinations(config, data)
+        identity_path = config / "brutallos/interface.json"
+        scheme_path = data / "color-schemes/BrutallIdentity.colors"
+        paths = legacy_paths + [identity_path, scheme_path]
+        identity = None
+        if args.action != "rollback":
+            previous = read_settings(identity_path)
+            identity = settings(args.theme or previous["theme"], args.variant or previous["variant"],
+                                previous["accent"] if args.accent is None else (None if args.accent == "auto" else args.accent),
+                                previous["tinted"] if args.tinted is None else args.tinted == "yes", args.mode)
         if args.action == "plan":
-            print(json.dumps({"mode": args.mode, "files": [str(path) for path in paths], "theme": THEME}, indent=2))
+            print(json.dumps({"identity": identity, "files": [str(path) for path in paths], "decoration": THEME}, indent=2))
             return 0
         kwrite = shutil.which("kwriteconfig6")
         colors = shutil.which("plasma-apply-colorscheme")
@@ -64,25 +79,36 @@ def main():
             if args.action == "rollback":
                 if args.backup is None: raise ValueError("Informe --backup com o arquivo do backup.")
                 manifest = json.loads(args.backup.read_text())
-                if manifest.get("schemaVersion") != 1: raise ValueError("Backup inválido.")
+                if manifest.get("schemaVersion") not in {1, 2}: raise ValueError("Backup inválido.")
                 # Validate the backup belongs to this user's permitted destination set.
-                if {item["path"] for item in manifest["files"]} != {str(path) for path in paths}:
+                expected = legacy_paths if manifest["schemaVersion"] == 1 else paths
+                if {item["path"] for item in manifest["files"]} != {str(path) for path in expected}:
                     raise ValueError("O backup pertence a outros diretórios ou versão do tema.")
                 restore(manifest["files"])
                 native(qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure")
                 print("Configurações anteriores restauradas. Reabra os apps ou entre novamente para recarregar a paleta em todos eles.")
                 return 0
-            manifest = {"schemaVersion": 1, "mode": args.mode, "phase": "prepared", "files": snapshot(paths)}
+            manifest = {"schemaVersion": 2, "identity": identity, "phase": "prepared", "files": snapshot(paths)}
             backup = state / (uuid.uuid4().hex + ".json")
             atomic(backup, json.dumps(manifest, indent=2).encode())
             print("Backup: " + str(backup), flush=True)
             try:
                 for source, target in copied: atomic(target, source.read_bytes())
+                p = palette(identity["accent"] or variant(identity["theme"], identity["variant"])["accent"], args.mode == "dark", identity["tinted"])
+                template = ROOT / "plasma/colors" / ("BruDark.colors" if args.mode == "dark" else "BruLight.colors")
+                atomic(scheme_path, color_scheme(template.read_text(), identity))
                 for key, value in {"library": "org.kde.kwin.aurorae", "theme": THEME, "ButtonsOnLeft": "XIA", "ButtonsOnRight": ""}.items():
                     native(kwrite, "--file", str(config / "kwinrc"), "--group", "org.kde.kdecoration2", "--key", key, value)
                 native(kwrite, "--file", str(config / "auroraerc"), "--group", THEME, "--key", "dark", "true" if args.mode == "dark" else "false")
-                native(colors, "BruDark" if args.mode == "dark" else "BruLight")
+                for key in ("paper", "ink"):
+                    native(kwrite, "--file", str(config / "auroraerc"), "--group", THEME, "--key", key, p[key])
+                # The CLI skips the current named scheme. Clear only that name
+                # on disk, then let the native tool reload/broadcast our new colors.
+                native(kwrite, "--file", str(config / "kdeglobals"), "--group", "General", "--key", "ColorScheme", "")
+                native(kwrite, "--file", str(config / "kdeglobals"), "--group", "General", "--key", "AccentColor", "--delete")
+                native(colors, "BrutallIdentity")
                 native(qdbus, "org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure")
+                atomic(identity_path, (json.dumps(identity, indent=2) + "\n").encode())
                 manifest["phase"] = "applied"
             except (OSError, ValueError, subprocess.SubprocessError):
                 manifest["phase"] = "incomplete"
@@ -90,7 +116,7 @@ def main():
             finally:
                 for item in manifest["files"]: item["after"] = digest(Path(item["path"]))
                 atomic(backup, json.dumps(manifest, indent=2).encode())
-            print("Bru aplicado: " + args.mode + ". Reversão: brutall-appearance rollback --backup " + str(backup))
+            print("Interface aplicada: " + args.mode + ", " + p["accent"] + ". Reversão: brutall-appearance rollback --backup " + str(backup))
             return 0
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
         print("brutall-appearance: " + str(error), file=sys.stderr)

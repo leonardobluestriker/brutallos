@@ -5,8 +5,8 @@ Decoration {
     id: frame
     alpha: true
     property bool dark: decoration.readConfig("dark", false)
-    readonly property color paper: dark ? "#151827" : "#f6f7fc"
-    readonly property color ink: dark ? "#f5f6ff" : "#101322"
+    property color paper: decoration.readConfig("paper", dark ? "#151827" : "#f6f7fc")
+    property color ink: decoration.readConfig("ink", dark ? "#f5f6ff" : "#101322")
     readonly property bool maximized: decoration.client.maximized
 
     DecorationOptions { id: options; deco: decoration }
@@ -69,6 +69,10 @@ Decoration {
     }
     Connections {
         target: decoration
-        function onConfigChanged() { frame.dark = decoration.readConfig("dark", false) }
+        function onConfigChanged() {
+            frame.dark = decoration.readConfig("dark", false)
+            frame.paper = decoration.readConfig("paper", frame.dark ? "#151827" : "#f6f7fc")
+            frame.ink = decoration.readConfig("ink", frame.dark ? "#f5f6ff" : "#101322")
+        }
     }
 }

@@ -21,16 +21,26 @@ ApplicationWindow {
     property bool reduced: false
     readonly property bool dark: appearance === "dark" || (appearance === "system" && win.backend.systemDark)
     readonly property color ink: dark ? "#f8f9ff" : "#101322"
-    readonly property color paper: dark ? "#151827" : "#ffffff"
-    readonly property color muted: dark ? "#202538" : "#f4f5f9"
+    readonly property var tones: win.backend.uiPalette(chosenTheme.id, chosenVariant.id, dark)
+    readonly property color paper: tones.paper
+    readonly property color muted: tones.surface
     readonly property color secondary: contrast ? ink : (dark ? "#c7cedf" : "#50576b")
-    readonly property color accent: dark ? "#dfff00" : "#1557ff"
-    readonly property color accentText: dark ? "#101322" : "#ffffff"
+    readonly property color accent: tones.accent
+    readonly property color accentText: tones.accentText
     readonly property var chosenTheme: win.backend.themes[themeIndex]
     readonly property var chosenVariant: chosenTheme.variants[variantIndex]
     readonly property var chosenPreset: win.backend.presets[presetIndex]
     readonly property var steps: [qsTr("Boas-vindas"), qsTr("Seu desktop"), qsTr("Sua identidade"), qsTr("Seu espaço"), qsTr("Tudo pronto")]
     color: paper
+    palette.window: paper
+    palette.base: paper
+    palette.button: muted
+    palette.text: ink
+    palette.buttonText: ink
+    palette.highlight: accent
+    palette.accent: accent
+    palette.highlightedText: accentText
+    palette.link: tones.link
     font.family: "sans-serif"
     font.pixelSize: 15
 
@@ -75,7 +85,7 @@ ApplicationWindow {
         background: Rectangle {
             radius: 8
             color: control.primary || control.checked ? win.accent : (control.hovered || control.down ? win.muted : win.paper)
-            border.color: control.visualFocus ? win.accent : win.ink
+            border.color: control.visualFocus ? win.tones.focus : win.ink
             border.width: control.visualFocus || win.contrast ? 3 : 1
             Rectangle {
                 visible: control.visualFocus
@@ -145,7 +155,7 @@ ApplicationWindow {
                 padding: 32; spacing: 20
                 Column {
                     visible: win.step === 0; width: parent.width - 64; spacing: 20
-                    Copy { text: qsTr("OLÁ, ESTE É O SEU COMEÇO."); color: win.accent; font.bold: true; font.pixelSize: 12; font.letterSpacing: 1.4 }
+                    Copy { text: qsTr("OLÁ, ESTE É O SEU COMEÇO."); color: win.tones.link; font.bold: true; font.pixelSize: 12; font.letterSpacing: 1.4 }
                     Heading { width: parent.width; text: qsTr("Ideias grandes.\nUm desktop à altura.") }
                     Rectangle {
                         width: parent.width; height: Math.min(width * 9 / 16, 200)
@@ -284,7 +294,7 @@ ApplicationWindow {
                 }
                 Column {
                     visible: win.step === 5; width: parent.width - 64; spacing: 24
-                    Copy { text: qsTr("PRIMEIRO PASSO, FEITO."); color: win.accent; font.bold: true; font.letterSpacing: 1.5 }
+                    Copy { text: qsTr("PRIMEIRO PASSO, FEITO."); color: win.tones.link; font.bold: true; font.letterSpacing: 1.5 }
                     Heading { width: parent.width; text: qsTr("Agora, é com você.") }
                     Copy { width: parent.width; text: qsTr("Suas escolhas estão salvas. Você pode reabrir o Welcome para revisá-las ou desfazer a última gravação.") }
                     BruButton { text: qsTr("Revisar escolhas"); onClicked: win.step = 2 }

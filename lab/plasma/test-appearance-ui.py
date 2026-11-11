@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QMetaObject
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtTest import QTest
 from PySide6.QtQuick import QQuickWindow
@@ -26,6 +26,8 @@ def find(item, name):
 
 
 def click(name):
+    QMetaObject.invokeMethod(window, "showWallpaperActions")
+    QTest.qWait(150)
     item = find(window.contentItem(), name)
     assert item is not None and item.isVisible() and item.isEnabled(), name
     QTest.mouseClick(window, Qt.LeftButton, Qt.NoModifier, item.mapToScene(item.boundingRect().center()).toPoint())

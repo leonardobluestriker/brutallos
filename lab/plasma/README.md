@@ -56,6 +56,8 @@ python3 /project/lab/plasma/test-wallpaper-multiscreen.py
 
 Ele verifica aplicação/reversão nas duas telas e isolamento ao alterar apenas a segunda. Resultados e capturas ficam em `/results`. O [relatório desta entrega](../../docs/launcher-and-wallpapers.md) registra a tarefa extra do launcher observada no dock em Wayland.
 
+Para [cores da interface](../../docs/interface-colors.md), execute `test-accent-ui.py` na sessão X11 do laboratório: testa prévia, HEX, fundos neutros/coloridos, aplicação nativa, persistência no launcher, claro/escuro e reversão; captura três desktops completos. `test-identity-native.py` funciona nas sessões X11 e Wayland, compara a paleta de um novo cliente Qt e os bytes restaurados. Esses testes alteram apenas o home descartável do contêiner.
+
 Encerrar o laboratório:
 
 ```sh

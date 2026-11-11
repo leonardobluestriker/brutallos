@@ -11,6 +11,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 
 from catalog import THEMES, PRESETS, ARTCRAFT, defaults
 from preferences import Preferences
+from identity import read_settings, palette, variant
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -24,6 +25,10 @@ class WelcomeBackend(QObject):
         super().__init__()
         self.store = Preferences(directory)
         self._message = ""
+        try:
+            self.interface = read_settings(Path(directory) / "interface.json", self.systemDark)
+        except (OSError, ValueError, KeyError, TypeError):
+            self.interface = None
         QGuiApplication.styleHints().colorSchemeChanged.connect(self.systemAppearanceChanged.emit)
         try:
             self._preferences = self.store.read()
@@ -34,6 +39,17 @@ class WelcomeBackend(QObject):
     @Property("QVariantList", constant=True)
     def themes(self):
         return THEMES
+
+    @Slot(str, str, bool, result="QVariantMap")
+    def uiPalette(self, theme, selected, dark):
+        custom = self.interface and self.interface["theme"] == theme and self.interface["variant"] == selected
+        accent = self.interface["accent"] if custom else None
+        try:
+            automatic = variant(theme, selected)["accent"]
+        except ValueError:
+            # QML can briefly evaluate with the previous variant during a theme change.
+            automatic = next((t["variants"][0]["accent"] for t in THEMES if t["id"] == theme), THEMES[0]["variants"][0]["accent"])
+        return palette(accent or automatic, dark, self.interface["tinted"] if self.interface else True)
 
     @Property(bool, notify=systemAppearanceChanged)
     def systemDark(self):
