@@ -1,7 +1,7 @@
 # brutallOS
 
 <p align="center">
-  <strong>Seu desktop. Sua identidade.</strong><br>
+  <strong>Tá tudo na tela. Vem!</strong><br>
   Linux + KDE Plasma 6 · Bru · Raio · Strikerzinho &amp; Friends
 </p>
 
@@ -12,17 +12,29 @@
   <a href="docs/product-direction.md">Conhecer a proposta</a>
 </p>
 
-Uma experiência Linux temática, com personalidade, janelas arredondadas e ferramentas próprias. A proposta combina a aparência e a dock inspiradas no macOS com atalhos e controles de janelas familiares ao Windows, mantendo espaço para criar uma identidade própria.
+O **brutallOS é uma distro brasileira em construção**, feita pra ser amigável e vívida. Pra quem quer usar Linux de forma criativa, gamer, hacker ou simplesmente casual: abrir e-mail, mexer em documentos e acessar a internet com segurança e privacidade.
+
+A proposta é respeitar quem está usando o computador: sem telemetria, adware ou software empurrado goela abaixo por padrão. Né, Co-piloto… Segurança e privacidade fazem parte do que queremos construir, junto com atualizações e escolhas claras sobre o que entra no sistema.
+
+**O protótipo foi, sim, vibe-codado. Mas eu quero humanidade.** Acredito num Linux fácil de instalar e usar, com a familiaridade que tanta gente encontra no Windows. Não quero que ninguém sofra com centenas de comandos no terminal, `sudo su`, `apt`, enfim, “tomando no cu” pra conseguir abrir um programa. É clicar e abrir, sem frescura.
+
+Ok, com uma frescurinha ou outra no tema.
+
+Se quiserem, eu faço um completamente dark, em tons de cinza e sem cores vibrantes. Abraço, Jean, meu ex-chefe que **ODIOU** um dashboard neobrutalista que eu fiz! Nunca me esquecerei.
+
+Quero que **Strikerzinho e seus amigos sejam a cara do sistema**. Que cada pessoa encontre seu jeito de usar: ousado como o Strikerzinho; com potência total igual ao Thunder quando treina e joga; ou simplesmente leve, sutil e inteligente como a Luna, um amorzinho de personagem.
+
+Janelas arredondadas, dock inspirada no macOS, atalhos e controles familiares ao Windows, temas com personalidade e ferramentas próprias. Esse é o caminho. E tem espaço pra você ajudar a dar forma a tudo isso.
 
 ![Desktop real do brutallOS com a interface Purple Luna](docs/screenshots/interface-colors/luna-interface-dark.png)
 
 *Captura real do desktop completo no laboratório Debian 13 / Plasma 6.3.6. Projeto em desenvolvimento: os protótipos estão disponíveis neste repositório; a ISO instalável é uma etapa futura.*
 
-## Vamos construir isso juntos?
+## Bora colocar mais gente nessa história?
 
-O brutallOS está procurando **pessoas para colaborar com código, ilustrações, design, testes e muito mais**. Não precisa saber fazer tudo, nem chegar com uma grande entrega. Uma correção pequena, um desenho, um teste bem explicado ou uma sugestão de acessibilidade já ajudam o projeto a crescer.
+Quero gente comigo nessa: **código, ilustrações, design, testes, documentação e tudo mais**. Não precisa chegar sabendo de tudo nem trazendo uma entrega gigante. Uma correção pequena, um desenho, um teste bem explicado ou uma ideia de acessibilidade já contam.
 
-Queremos que o brutallOS cresça com **criatividade, experiência e decisões humanas**. A IA pode apoiar o trabalho, mas a proposta é construir uma comunidade que participe da criação, revise as soluções e dê personalidade ao sistema. Sua contribuição faz parte dessa construção.
+Não quero depender 100% de IA. Ela pode ajudar, claro. Quero também o olhar de quem programa, desenha, joga, testa, encontra um problema e fala “isso aqui podia ser melhor”. Gente criando, revisando e colocando um pouco de si no brutallOS.
 
 | Sua área | Onde você pode ajudar |
 | --- | --- |
@@ -33,9 +45,9 @@ Queremos que o brutallOS cresça com **criatividade, experiência e decisões hu
 | Documentação e tradução | Guias para iniciantes, revisão de textos e novos idiomas |
 | Áudio e outras ideias | Sons do sistema e propostas que ajudem a formar a identidade do brutallOS |
 
-> **Artistas: em breve chegam as style sheets oficiais do Strikerzinho, do Thunder e da Luna!** Elas vão servir de referência para novas ilustrações e manter a identidade dos personagens. Enquanto isso, já dá para conversar sobre ideias e conhecer as artes originais do repositório.
+> **Em breve eu solto as style sheets do Strikerzinho, do Thunder e da Luna!** Vai ter referência pra quem quiser desenhar essa turma e ajudar a trazer os personagens pro sistema. Enquanto isso, já dá pra trocar ideias e conhecer as artes originais do repositório.
 
-**[Veja como contribuir](CONTRIBUTING.md)** ou **[abra uma proposta de colaboração](https://github.com/leonardobluestriker/brutallos/issues/new/choose)** contando o que você gostaria de fazer. Quem está começando também é bem-vindo. Se conhecer alguém que curte Linux, programação ou arte, compartilhar o projeto também ajuda.
+**[Veja como contribuir](CONTRIBUTING.md)** ou **[abra uma proposta de colaboração](https://github.com/leonardobluestriker/brutallos/issues/new/choose)** contando o que você quer fazer. Tá começando agora? Vem também. E, se conhecer alguém que curte Linux, programação ou arte, manda o projeto pra essa pessoa.
 
 ## O que já está funcionando
 

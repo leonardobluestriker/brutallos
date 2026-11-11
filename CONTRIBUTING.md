@@ -1,8 +1,8 @@
 # Contribua com o brutallOS
 
-O brutallOS quer reunir pessoas que gostem de Linux, software, arte e interfaces com personalidade. Você pode contribuir com código, ilustrações, ícones, testes, documentação, tradução, áudio ou uma ideia bem explicada. **Não é preciso ser especialista para começar.**
+Tá a fim de colocar um pouco de você no brutallOS? Vem. Pode ser com código, ilustrações, ícones, testes, documentação, tradução, áudio ou uma ideia bem explicada. **Não precisa ser especialista nem chegar sabendo de tudo.**
 
-A IA pode ser uma ferramenta de apoio. O que queremos construir é um projeto com participação humana: pessoas criando, experimentando, revisando e tomando decisões sobre o sistema. Ao enviar uma contribuição, conte o que você fez, por que fez e o que conseguiu verificar.
+O protótipo foi, sim, vibe-codado, mas a ideia é trazer mais gente pra criar, experimentar, revisar e decidir os próximos passos. A IA pode ajudar; não quero depender 100% dela. Ao enviar uma contribuição, conta o que você fez, por que fez e o que conseguiu verificar. Seu olhar faz parte do projeto.
 
 ## Por onde começar
 
@@ -31,7 +31,7 @@ Prefira mudanças focadas e descreva a validação relevante: qual comportamento
 
 As famílias de temas são **Bru**, **Raio** e **Strikerzinho & Friends**, com Blue Striker, Green Thunder e Purple Luna. As [nove imagens originais](assets/wallpapers/README.md) são a referência atual e devem permanecer intactas. Envie propostas novas em arquivos separados.
 
-**Em breve serão publicadas as style sheets oficiais do Strikerzinho, do Thunder e da Luna.** Elas orientarão proporções, cores e detalhes dos personagens. Até lá, você já pode apresentar ideias, estudos ou propostas de colaboração em uma issue; as referências definitivas ainda serão disponibilizadas.
+**Em breve eu solto as style sheets oficiais do Strikerzinho, do Thunder e da Luna.** Elas vão trazer as referências de proporções, cores e detalhes dos personagens. Até lá, já dá pra apresentar ideias, estudos ou propostas de colaboração em uma issue.
 
 Ilustrações, ícones, wallpapers, animações e sons são bem-vindos. Inclua uma prévia, explique onde a peça se encaixa e dê crédito a quem participou. Quando possível, envie também o arquivo editável. Informe a autoria e a origem de materiais de terceiros para que o projeto possa avaliar sua inclusão. A política de licenciamento do código e das artes ainda precisa ser definida; este guia não atribui uma licença nova aos materiais existentes.
 
