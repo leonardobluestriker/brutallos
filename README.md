@@ -1,5 +1,44 @@
 # brutallOS
 
+<p align="center">
+  <strong>Seu desktop. Sua identidade.</strong><br>
+  Linux + KDE Plasma 6 · Bru · Raio · Strikerzinho &amp; Friends
+</p>
+
+<p align="center">
+  <a href="CONTRIBUTING.md"><strong>Quero contribuir</strong></a> ·
+  <a href="https://github.com/leonardobluestriker/brutallos/issues/new/choose">Propor uma ideia</a> ·
+  <a href="docs/interface-colors.md">Ver a interface</a> ·
+  <a href="docs/product-direction.md">Conhecer a proposta</a>
+</p>
+
+Uma experiência Linux temática, com personalidade, janelas arredondadas e ferramentas próprias. A proposta combina a aparência e a dock inspiradas no macOS com atalhos e controles de janelas familiares ao Windows, mantendo espaço para criar uma identidade própria.
+
+![Desktop real do brutallOS com a interface Purple Luna](docs/screenshots/interface-colors/luna-interface-dark.png)
+
+*Captura real do desktop completo no laboratório Debian 13 / Plasma 6.3.6. Projeto em desenvolvimento: os protótipos estão disponíveis neste repositório; a ISO instalável é uma etapa futura.*
+
+## Vamos construir isso juntos?
+
+O brutallOS está procurando **pessoas para colaborar com código, ilustrações, design, testes e muito mais**. Não precisa saber fazer tudo, nem chegar com uma grande entrega. Uma correção pequena, um desenho, um teste bem explicado ou uma sugestão de acessibilidade já ajudam o projeto a crescer.
+
+Queremos que o brutallOS cresça com **criatividade, experiência e decisões humanas**. A IA pode apoiar o trabalho, mas a proposta é construir uma comunidade que participe da criação, revise as soluções e dê personalidade ao sistema. Sua contribuição faz parte dessa construção.
+
+| Sua área | Onde você pode ajudar |
+| --- | --- |
+| Desenvolvimento | Python, Qt/QML, Plasma, KWin, Wayland, configurações e Striker Tools |
+| Ilustração e personagens | Artes do Strikerzinho, Thunder e Luna, wallpapers e materiais do projeto |
+| Design e experiência | Temas, ícones, tipografia, animações, usabilidade e acessibilidade |
+| Testes | Hardware real, jogos, monitores, escala, teclado e relatos de problemas |
+| Documentação e tradução | Guias para iniciantes, revisão de textos e novos idiomas |
+| Áudio e outras ideias | Sons do sistema e propostas que ajudem a formar a identidade do brutallOS |
+
+> **Artistas: em breve chegam as style sheets oficiais do Strikerzinho, do Thunder e da Luna!** Elas vão servir de referência para novas ilustrações e manter a identidade dos personagens. Enquanto isso, já dá para conversar sobre ideias e conhecer as artes originais do repositório.
+
+**[Veja como contribuir](CONTRIBUTING.md)** ou **[abra uma proposta de colaboração](https://github.com/leonardobluestriker/brutallos/issues/new/choose)** contando o que você gostaria de fazer. Quem está começando também é bem-vindo. Se conhecer alguém que curte Linux, programação ou arte, compartilhar o projeto também ajuda.
+
+## O que já está funcionando
+
 **Entrega atual:** destaque ajustável, cor automática por tema e fundos/molduras coloridos ou neutros, em modo claro/escuro. Purple Luna usa roxo. [Guia, validação e capturas completas](docs/interface-colors.md).
 
 O [launcher próprio conectado à dock e os nove wallpapers originais](docs/launcher-and-wallpapers.md) continuam disponíveis com backup/desfazer. A decoração Bru mantém o sinaleiro nativo Aurorae à esquerda.
@@ -9,6 +48,17 @@ Experiência desktop sobre Linux, KDE Plasma 6, KWin e Aurorae. A distribuição
 A referência técnica é [design-4.md](design-4.md), complementada pela [direção atual do produto](docs/product-direction.md). A sequência atual informada pelo projeto prevalece sobre a tarefa histórica de Fase 1 no final desse documento: **Welcome → painel superior → dock → launcher → configurações → Striker Tools**.
 
 **Laboratório cloud executado:** Debian 13, Plasma/KWin 6.3.6 e Qt 6.8.2, com 40 testes automatizados aprovados e validação das cores nativas em X11/Wayland. Etapas anteriores validaram launcher/dock, aplicação/reversão dos nove wallpapers e duas saídas Wayland; escala 200% também foi exercitada antes. [Relatório atual](docs/interface-colors.md) e [histórico do laboratório](docs/cloud-lab-report.md). As capturas atuais usam a decoração Bru; as primeiras históricas usam Breeze.
+
+## Onde queremos chegar
+
+- Refinar painel, dock e launcher, incluindo a integração com Wayland.
+- Completar os estilos visuais de Bru, Raio e Strikerzinho & Friends.
+- Ampliar a Central de configurações e as Striker Tools com dados reais de hardware.
+- Medir desempenho, uso de RAM, compatibilidade com jogos e autonomia.
+- Integrar os aplicativos ArtCraft disponíveis para Linux.
+- Preparar instalação, atualizações e uma futura distribuição própria, com backup e reversão.
+
+Você pode ajudar a transformar qualquer uma dessas frentes em uma entrega concreta. O [guia de contribuição](CONTRIBUTING.md) indica os arquivos e os primeiros passos para cada área.
 
 ## Painel superior
 

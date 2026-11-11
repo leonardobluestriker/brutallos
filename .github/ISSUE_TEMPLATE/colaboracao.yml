@@ -1,0 +1,38 @@
+name: Quero colaborar ou propor uma ideia
+description: Código, ilustração, design, testes, documentação e outras contribuições.
+title: "[Colaboração] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo interesse no brutallOS! Quem está começando também é bem-vindo.
+        Veja o [guia de contribuição](https://github.com/leonardobluestriker/brutallos/blob/main/CONTRIBUTING.md).
+        As style sheets oficiais do Strikerzinho, do Thunder e da Luna serão publicadas em breve.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Em qual área você quer contribuir?
+      multiple: true
+      options:
+        - Código e integração Linux
+        - Ilustração e personagens
+        - Design, ícones e interface
+        - Testes e relatos de problemas
+        - Documentação e tradução
+        - Áudio
+        - Outra ideia
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Conte sua ideia ou como gostaria de ajudar
+      description: Pode ser uma contribuição pequena, uma dúvida para começar ou uma proposta maior.
+      placeholder: "Gostaria de ajudar com…"
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Prévias, referências ou ambiente de teste
+      description: Opcional. Para problemas, inclua os passos para reproduzir e as versões do sistema. Para arte, você pode anexar um estudo ou uma prévia.
